@@ -1,0 +1,44 @@
+---
+title: Docker Basics
+description: Core Docker concepts, images, containers, and volumes.
+order: 1
+---
+
+## Images vs Containers
+
+An **image** is a read-only template. A **container** is a running instance of an image.
+
+```bash
+# Pull an image
+docker pull nginx:alpine
+
+# Run a container
+docker run -d --name web -p 8080:80 nginx:alpine
+
+# List running containers
+docker ps
+```
+
+## Volumes
+
+Volumes persist data beyond the container lifecycle.
+
+```bash
+# Create a named volume
+docker volume create mydata
+
+# Mount it into a container
+docker run -d -v mydata:/data alpine
+```
+
+## Key flags
+
+| Flag | Purpose |
+|------|---------|
+| `-d` | Detached mode (background) |
+| `-p` | Port mapping `host:container` |
+| `-v` | Volume mount |
+| `--name` | Assign a name |
+| `--rm` | Auto-remove on exit |
+
+> **Tip:** Use `docker system prune` to clean up unused images, containers, and volumes.

@@ -1,0 +1,75 @@
+---
+title: Docker Compose
+description: Multi-container orchestration with Compose files.
+order: 2
+---
+
+## Why Compose?
+
+Docker Compose lets you define multi-container applications in a single YAML file. Instead of running multiple `docker run` commands, you describe your entire stack declaratively.
+
+## Basic structure
+
+```yaml title="docker-compose.yml"
+services:
+  web:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./html:/usr/share/nginx/html
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
+```
+
+## Common commands
+
+```bash
+# Start all services
+docker compose up -d
+
+# View logs
+docker compose logs -f web
+
+# Stop and remove everything
+docker compose down
+
+# Rebuild after code changes
+docker compose up -d --build
+```
+
+## Networks
+
+Compose creates a default network for each project. Services can reach each other by name:
+
+```python
+# From the "web" service, connect to "db" by hostname
+import psycopg2
+conn = psycopg2.connect(host="db", dbname="postgres", user="postgres")
+```
+
+## Healthchecks
+
+```yaml
+services:
+  db:
+    image: postgres:16
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  web:
+    depends_on:
+      db:
+        condition: service_healthy
+```

@@ -1,0 +1,73 @@
+---
+title: DNS Fundamentals
+description: How domain name resolution works, record types, and debugging.
+order: 1
+---
+
+## How DNS works
+
+DNS translates human-readable domain names into IP addresses. The resolution process follows a hierarchy:
+
+1. **Browser cache** - check local cache first
+2. **OS resolver** - check `/etc/hosts` and system cache
+3. **Recursive resolver** - your ISP or configured DNS server (e.g. `1.1.1.1`)
+4. **Root servers** - direct to the correct TLD server
+5. **TLD servers** - direct to the authoritative nameserver
+6. **Authoritative server** - returns the final answer
+
+## Record types
+
+| Type | Purpose | Example |
+|------|---------|---------|
+| `A` | IPv4 address | `192.168.1.100` |
+| `AAAA` | IPv6 address | `2001:db8::1` |
+| `CNAME` | Alias to another name | `www` → `example.com` |
+| `MX` | Mail server | `mail.example.com` |
+| `TXT` | Arbitrary text | SPF, DKIM records |
+| `NS` | Nameserver delegation | `ns1.example.com` |
+| `SRV` | Service location | `_sip._tcp.example.com` |
+
+## Debugging DNS
+
+```bash
+# Basic lookup
+dig example.com
+
+# Query a specific record type
+dig example.com MX
+
+# Trace the full resolution path
+dig +trace example.com
+
+# Query a specific nameserver
+dig @1.1.1.1 example.com
+
+# Reverse lookup
+dig -x 192.168.1.1
+```
+
+## Local DNS with `/etc/hosts`
+
+For homelab use, you can override DNS locally:
+
+```bash
+# /etc/hosts
+192.168.1.10    server.home.lab
+192.168.1.11    nas.home.lab
+192.168.1.12    pi.home.lab
+```
+
+> **Note:** Changes to `/etc/hosts` take effect immediately, no need to restart anything. But they only apply to the local machine.
+
+## TTL (Time to Live)
+
+Every DNS record has a TTL value (in seconds) that controls how long resolvers cache it:
+
+```bash
+# Check the TTL of a record
+dig example.com | grep -E "^example"
+# example.com.    300    IN    A    93.184.216.34
+#                 ^^^--- TTL in seconds (5 minutes)
+```
+
+Lower TTL = faster propagation of changes, but more DNS queries. For homelab services, a TTL of **300-600 seconds** is a good default.
