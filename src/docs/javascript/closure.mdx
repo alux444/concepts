@@ -1,0 +1,166 @@
+---
+title: Closures
+description: Understanding closures in JavaScript with examples and use cases.
+order: 1
+---
+
+## What is a closure?
+
+Function that still has access to its outer scope variables after the outer function has returned.
+
+### Use case - Data privacy / encapsulation
+
+```javascript
+function createBankAccount(initialBalance) {
+  let balance = initialBalance; // private variable
+
+  return {
+    deposit(amount) {
+      balance += amount;
+    },
+    withdraw(amount) {
+      if (amount <= balance) {
+        balance -= amount;
+        return true;
+      }
+      return false;
+    },
+    getBalance() {
+      return balance;
+    }
+  };
+}
+
+const account = createBankAccount(100);
+account.deposit(50);
+console.log(account.getBalance()); // 150
+account.withdraw(30);
+console.log(account.getBalance()); // 120
+// account.balance = not accessible from outside the closure
+```
+
+### Use case - Function factories
+
+```javascript
+function makeMultiplier(multiplier) {
+  return function (x) {
+    return x * multiplier; // has access to multiplier from outer scope
+  };
+}
+
+const double = makeMultiplier(2);
+const triple = makeMultiplier(3);
+console.log(double(5)); // 10
+console.log(triple(5)); // 15
+```
+
+### Use case - Memoization
+
+```javascript
+function memoize(fn) {
+  const cache = {};
+
+  return function(...args) {
+    const key = args.toString();
+    if (cache[key]) {
+      return cache[key]; // return cached result
+    }
+    const result = fn(...args);
+    cache[key] = result; // store result in cache
+    return result;
+  }
+}
+
+const expensiveAdd = memoize((a,b) => a+b);
+console.log(expensiveAdd(1,2)); // 3 (calculated)
+console.log(expensiveAdd(1,2)); // 3 (cached)
+```
+
+### Use case - Partial application
+
+```javascript
+function createLogger(prefix) {
+  return function(message) {
+    console.log(`[${prefix}] ${message}`); // has access to prefix
+  };
+}
+
+const infoLogger = createLogger('INFO');
+const errorLogger = createLogger('ERROR');
+
+infoLogger('This is an info message'); // [INFO] This is an info message
+errorLogger('This is an error message'); // [ERROR] This is an error message
+```
+
+### Use case - Event handlers
+
+```javascript
+function setupButton() {
+  const button = document.querySelector("#myButton");
+  let clickCount = 0;
+
+  button.addEventListener("click", function() {
+    clickCount++; // has access to clickCount variable
+    console.log(`Button clicked ${clickCount} times`);
+  });
+}
+```
+
+### Use case - Asynchronous code
+
+```javascript
+function fetchData(url) {
+  let data = null;
+
+  fetch(url)
+    .then(response => response.json())
+    .then(json => {
+      data = json; // closure retains access to data variable
+      console.log("Data fetched:", data);
+    });
+
+  return function getData() {
+    return data; // can access data even after fetchData has returned
+  };
+}
+```
+
+### Common pitfall - Memory leaks
+
+Closures can unintentionally keep references to large objects, preventing garbage collection. Be mindful of what variables your closures capture.
+
+```javascript
+function createHeavyClosure() {
+  const largeObject = new Array(1000000).fill("data"); // large object
+
+  return function() {
+    console.log(largeObject[0]); // closure keeps reference to largeObject
+  };
+}
+```
+
+### Common pitfall - Loop variables
+
+`var` creates function-scoped variables, which can lead to unexpected behavior in closures inside loops. Use `let` or `const` to create block-scoped variables instead.
+
+```javascript
+function setupButtons() {
+  const buttons = document.querySelectorAll(".btn");
+  
+  for (var i = 0; i < buttons.length; i++) {
+    buttons[i].addEventListener("click", function() {
+      console.log("Button index:", i); // always logs buttons.length
+    });
+  }
+  // Fix 1: use let instead of var
+  // Fix 2: wrap in IIFE
+  // Fix 3: use forEach (which creates a new scope per iteration)
+  
+  buttons.forEach((btn, index) => {
+    btn.addEventListener("click", () => {
+      console.log("Button index:", index); // correct
+    });
+  });
+}
+```
+

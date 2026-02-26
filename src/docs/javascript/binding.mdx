@@ -1,0 +1,91 @@
+---
+title: Binding
+description: Understanding binding in JavaScript with examples and use cases.
+order: 2
+---
+
+## What is binding?
+
+Binding refers to how the value of `this` is determined in a function.
+
+`this` is not determined by where a function is written, but by how it is called.
+
+```javascript
+// rule 1: new binding - highest priority
+function Person(name) {
+  // 1. creates a new empty object this -> {}
+  this.name = name; // 2. assigns properties to this
+  // 3. returns this implicitly
+}
+const p = new Person('Alice'); // this -> {name: 'Alice'}
+
+// rule 2: explicit binding - second priority (call, apply, bind)
+function greet() {
+  console.log(`Hello, my name is ${this.name}`);
+}
+const u = { name: 'Bob' };
+greet.call(u); // this -> u (Bob)
+greet.apply(u); // this -> u (Bob)
+const bound = greet.bind(u);
+bound(); // this -> u (Bob) - permanently bound
+
+// rule 3: implicit binding - third priority
+const obj = {
+  name: 'Charlie',
+  greet() {
+    console.log(`Hi, I'm ${this.name}`);
+  }
+};
+obj.greet(); // this -> obj (Charlie)
+
+// rule 4: default binding - lowest priority
+function sayName() {
+  console.log(`My name is ${this.name}`);
+}
+sayName(); // this -> global object (window in browsers, undefined in strict mode)
+```
+
+### Losing implicit binding
+
+```javascript
+const person = {
+  name: 'Dave',
+  greet() {
+    console.log(`Hello, I'm ${this.name}`);
+  }
+};
+
+person.greet(); // this -> person (Dave)
+const greetFunc = person.greet; // loses implicit binding
+greetFunc(); // this -> global object (undefined in strict mode)
+// this is why event handlers and callbacks often lose the intended this value
+```
+
+## Arrow functions
+
+Arrow functions do not have their own `this`. They inherit `this` from the enclosing scope
+
+Generally, use arrow functions for callbacks and inner functions to avoid losing `this`. Use regular functions for object methods.
+
+```javascript
+const obj = {
+  name: 'Eve',
+
+  regularFunc() {
+    console.log(`Regular: ${this.name}`); // this -> obj (Eve)
+    function inner() {
+      console.log(`Inner regular: ${this.name}`); // this -> global object (undefined in strict mode) - default binding
+    }
+    inner();
+
+    const arrowFunc = () => {
+      console.log(`Inner arrow: ${this.name}`); // this -> obj (Eve) - inherits from regularFunc
+    };
+    arrowFunc();
+  },
+
+  arrowFunc: () => {
+    console.log(`Arrow: ${this.name}`); // this -> global object (undefined in strict mode) - default binding
+    // it looks out to the next SCOPE (functions, blocks, modules)
+  }
+};
