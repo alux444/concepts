@@ -1,0 +1,96 @@
+---
+title: Prototypes
+description: Understanding prototypes in JavaScript with examples and use cases.
+order: 3
+---
+
+## What is a prototype?
+
+Every object in JS has a hidden link `[[Prototype]]` to another object. This forms a prototype chain used for property lookup.
+
+When you access a property on an object, JS first checks if it exists on the object itself. If not, it follows the `[[Prototype]]` link to check the prototype object, and so on up the chain until it finds the property or reaches `null`.
+
+```javascript
+const animal = {
+  isAlive: true,
+  eat() {
+    console.log(`${this.name} is eating.`);
+  },
+};
+
+const dog = Object.create(animal);
+dog.name = "Rex";
+dog.bark = function () {
+  console.log("Woof!");
+};
+
+dog.bark(); // Woof! - found on dog itself
+dog.eat(); // Rex is eating. - found on animal prototype
+dog.isAlive; // true - found on animal prototype
+dog.toString(); // [object Object] - found on Object.prototype
+```
+
+This links to what `class` does under the hood.
+
+```javascript
+function User(name, age) {
+  this.name = name;
+  this.age = age;
+}
+
+// methods go on the prototype
+// this is shared by all instances - memory efficient
+User.prototype.describe = function () {
+  return `${this.name} is ${this.age} years old.`;
+};
+
+const u1 = new User("Alice", 30);
+const u2 = new User("Bob", 25);
+
+u1.describe(); // Alice is 30 years old.
+u2.describe(); // Bob is 25 years old.
+
+u1.describe === u2.describe; // true - both instances share the same method on the prototype
+```
+
+So what does `new` do?
+
+1. Creates a new empty object: {}
+2. Sets its prototype: {}.**proto** = User.prototype
+3. Calls User with `this` = that object
+4. Returns the object (unless User explicitly returns something else)
+
+So `class` is just cleaner syntax for this prototype-based inheritance.
+
+```javascript
+class User {
+  constructor(name, age) {
+    this.name = name;
+    this.age = age;
+  }
+
+  describe() {
+    return `${this.name} is ${this.age} years old.`;
+  }
+}
+
+class Admin extends User {
+  constructor(name, age, role) {
+    super(name, age); // calls User constructor
+    this.role = role;
+  }
+
+  describe() {
+    return `${super.describe()} They are an ${this.role}.`;
+  }
+}
+
+const admin = new Admin("Charlie", 40, "admin");
+admin.describe(); // Charlie is 40 years old. They are an admin.
+
+// Chain: admin -> Admin.prototype -> User.prototype -> Object.prototype -> null
+admin instanceof Admin; // true
+admin instanceof User; // true
+```
+
+As a performance implication, properties found directly on the object are faster to access than those found on the prototype chain. So it's best to put shared methods on the prototype, and instance-specific data directly on the object.
