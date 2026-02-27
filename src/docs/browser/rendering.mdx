@@ -1,0 +1,74 @@
+---
+title: Rendering
+description: Understanding rendering in browsers
+order: 1
+---
+
+## Critical rendering path
+
+This is the sequence of steps the browser takes to convert HTML, CSS, and JavaScript into pixels on the screen.
+
+```
+HTML bytes → Characters → Tokens → Nodes → DOM tree
+                                              ↓
+CSS bytes  → Characters → Tokens → Nodes → CSSOM tree
+                                              ↓
+                                         Render Tree
+                                              ↓
+                                           Layout
+                                              ↓
+                                           Paint
+                                              ↓
+                                         Composite
+```
+
+1. HTML Parsing -> DOM tree
+   The browser reads HTML top to bottom and builds nodes as it goes
+   This is incremental, doesn't wait for all HTML to arrive
+
+2. CSS Parsing -> CSSOM tree
+   All CSS must be parsed before rendering, CSS is render-blocking
+
+3. Render Tree -> DOM + CSSOM combined
+   Only visible elements go into the render tree
+   display: none -> not in render tree (no space reserved)
+   visibility: hidden -> in render tree but not painted (space reserved)
+   opacity: 0 -> in render tree and painted but fully transparent (space reserved)
+
+4. Layout
+   Calculate the exact position and size of each element
+
+5. Paint
+   Fill in pixels: colors, text, images, borders, shadows, etc.
+   Produces "paint records" - list of draw calls
+
+6. Composite
+   Layers are combined in the correct order
+   GPU-accelerated - so transforms and opacity are fast
+
+```html
+<!-- CSS blocks rendering, but not HTML parsing -->
+<!-- The browser won't paint anything until all CSS is loaded and parsed -->
+<head>
+  <!-- This blocks rendering until it downloads and parses -->
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- Preload hints: tell the browser to start downloading CSS early, but it still blocks rendering until parsed -->
+  <link rel="preload" href="styles.css" as="style" />
+  <link rel="preload" href="hero.png" as="image" />
+</head>
+
+<body>
+  <!-- JS blocks HTML parsing by default -->
+  <!-- The parser stops, downloads the script, executes it, then resumes parsing -->
+  <script src="script.js"></script>
+
+  <!-- async: download in parallel, execute as soon as it's ready (doesn't block HTML parsing, only during execution) -->
+  <!-- Used for: analytics, ads, or any non-critical scripts -->
+  <script async src="analytics.js"></script>
+
+  <!-- defer: download in parallel, execute after HTML parsing is done (doesn't block HTML parsing at all) -->
+  <!-- Used for: main application scripts that can wait until the DOM is ready -->
+  <script defer src="app.js"></script>
+</body>
+```
