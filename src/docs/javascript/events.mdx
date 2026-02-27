@@ -1,0 +1,147 @@
+---
+title: Events
+description: Understanding events in JavaScript with examples and use cases.
+order: 8
+---
+
+When a button is clicked inside a div inside the body, the event goes through three phases:
+
+1. Capture - goes down from the window to the target
+   window -> document -> html -> body -> div -> button
+
+2. Target - fires on the element actually clicked (button)
+
+3. Bubble - goes back up from the target to the window
+   button -> div -> body -> html -> document -> window
+
+```javascript
+document.querySelector(".parent").addEventListener(
+  "click",
+  () => {
+    console.log("Parent - bubble");
+  },
+  false,
+); // false means bubble phase
+
+document.querySelector(".parent").addEventListener(
+  "click",
+  () => {
+    console.log("Parent - capture");
+  },
+  true,
+); // true means capture phase
+
+document.querySelector(".child").addEventListener("click", () => {
+  console.log("Child - target");
+});
+```
+
+So in this example, if we click the child element, the order of logs will be:
+
+1. Parent - capture
+2. Child - target
+3. Parent - bubble
+
+At scale, this matters.
+If we have a dynamic list, items are added and removed frequently. If we attach listeners to each item, we have to worry about their lifecycle.
+
+```javascript
+// without delegation (problem)
+function addItem(text) {
+  const item = document.createElement("li");
+  item.textContent = text;
+  item.addEventListener("click", () => {
+    console.log(`Clicked on ${text}`);
+  });
+  document.querySelector("#list").appendChild(item);
+}
+
+// with delegation (better)
+const list = document.querySelector("#list");
+
+list.addEventListener("click", (event) => {
+  // e.target - actual element clicked (could be anything inside list)
+  // e.currentTarget - element listener is attached to (list)
+
+  // closest searches upwards from the target
+  const li = e.target.closest("li"); // find closest li ancestor of clicked element
+  if (!li) return;
+  if (!list.contains(li)) return; // make sure it's still in the list
+
+  const deleteBtn = e.target.closest(".delete-btn");
+  const editBtn = e.target.closest(".edit-btn");
+
+  if (deleteBtn) {
+    handleDelete(li);
+    return;
+  }
+
+  if (editBtn) {
+    handleEdit(li);
+    return;
+  }
+
+  handleSelect(li);
+});
+```
+
+Common issues
+
+1. stopPropagation - stops the event from bubbling up, can break delegation
+
+```javascript
+document.querySelector(".child").addEventListener("click", (e) => {
+  console.log("Child clicked");
+  e.stopPropagation(); // parent listeners won't fire
+});
+```
+
+2. Focus / blur doesn't bubble, so you have to use capture phase or focusin/focusout instead.
+
+```javascript
+form.addEventListener("focus", handler); // focus doesn't bubble, so this won't work. Use capture phase instead
+
+form.addEventListener("focus", handler, true); // use capture phase to catch focus events
+form.addEventListener("focusin", handler); // focusin does bubble, so this works without capture
+```
+
+3. e.target vs e.currentTarget
+   e.target = what was actually clicked
+   e.currentTarget = element the listener is attached to
+
+```javascript
+// e.g if a <span> inside the button is clicked
+button.addEventListener("click", (e) => {
+  console.log(e.target); // <span>
+  console.log(e.currentTarget); // <button>
+});
+```
+
+4. mouseenter / mouseleave don't button. mouseover / mouseout do.
+
+```javascript
+div.addEventListener("mouseenter", () => {
+  console.log("Mouse entered div");
+}); // doesn't bubble
+div.addEventListener("mouseover", () => {
+  console.log("Mouse over div");
+}); // bubbles - will also fire if mouse enters child elements
+```
+
+5. eventListener options
+
+```javascript
+element.addEventListener("scroll", handler, {
+  passive: true, // tells browser handler won't call preventDefault, allows better scrolling performance
+  once: true, // automatically removes listener after first call
+  capture: false, // use bubble phase (default)
+  signal: abortController.signal, // allows you to remove listener by calling abortController.abort()
+});
+```
+
+## React?
+
+- React doesn't attach listeners to individual elements.
+- It uses event delegation, so:
+  1. e.stopPropagation in React stops React events, but not native events.
+  2. Events in React are synthetic (wrappers around native events)
