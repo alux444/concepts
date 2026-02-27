@@ -1,0 +1,85 @@
+---
+title: Memory Leaks
+description: Understanding JavaScript memory leaks and how to avoid them.
+order: 5
+---
+
+## Garbage collection
+
+JS uses mark-and-sweep GC. It tracks object references and frees memory for objects that are no longer reachable.
+
+But if we accidentally keep references to objects we don't need, they won't be collected and will cause memory leaks.
+
+```javascript
+// Forgotten event listeners
+function setup() {
+  const button = document.querySelector("#myButton");
+  button.addEventListener("click", () => {
+    console.log("Button clicked");
+  });
+
+  // If we never remove this listener, it keeps a reference to the button and any data it captures
+  // to fix,
+
+  // button.removeEventListener("click", ...);
+}
+
+// Closures that capture large objects
+function createHeavyClosure() {
+  const largeObject = new Array(1000000).fill("data"); // large object
+
+  return function getLargeObject() {
+    console.log(largeObject[0]); // closure keeps reference to largeObject
+  };
+
+  // largeObject will never be collected. To fix, null out the reference when done:
+  largeObject = null;
+}
+
+// Timers
+function startTimer() {
+  const intervalId = setInterval(() => {
+    console.log("Timer tick");
+  }, 1000);
+
+  // If we never clear this interval, it keeps running and can cause leaks
+  // To fix:
+  // clearInterval(intervalId);
+}
+
+// DOM references
+function leak() {
+  const elements = [];
+
+  for (let i = 0; i < 1000; i++) {
+    const div = document.createElement("div");
+    document.body.appendChild(div);
+    elements.push(div); // keeps reference to all these divs, preventing GC
+  }
+
+  // later removing from dom...
+  elements.forEach((el) => document.body.removeChild(el));
+  // but we still have references in the elements array, so they won't be collected
+  // To fix:
+  // elements.length = 0; or elements = [];
+}
+
+// Map/Set with object keys
+function mapLeak() {
+  const map = new Map();
+  let obj = { name: "leaky" };
+  map.set(obj, "some value");
+  // If we never delete this key or set obj to null, it will keep the object in memory
+  // To fix:
+  // map.delete(obj);
+  // or
+  // obj = null;
+
+  // WeakMap/WeakSet can help here since they don't prevent GC of their keys
+  const weakMap = new WeakMap();
+  let weakObj = { name: "weakly leaky" };
+  weakMap.set(weakObj, "some value");
+  // even if we don't delete the key, it can be collected when weakObj is no longer referenced
+  weakObj = null; // now the object can be GC'd
+}
+```
