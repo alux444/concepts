@@ -1,0 +1,119 @@
+---
+title: Generators and Iterators
+description: Understanding generators and iterators in JavaScript with examples and use cases.
+order: 10
+---
+
+## Generators
+
+Functions that can pause and resume. `yield` is a keyword used as a two-way communication point.
+
+```javascript
+function* counter() {
+  console.log("Counter started");
+  yield 1;
+  console.log("Counter resumed");
+  yield 2;
+  console.log("Counter resumed again");
+  yield 3;
+  console.log("Done");
+}
+
+const gen = counter();
+console.log(gen.next()); // { value: 1, done: false }
+console.log(gen.next()); // { value: 2, done: false }
+console.log(gen.next()); // { value: 3, done: false }
+console.log(gen.next()); // { value: undefined, done: true }
+
+// yield received values inside the generator
+function* conversation() {
+  const name = yield "What's your name?";
+  const age = yield "How old are you?";
+  return `Hello ${name}, you are ${age} years old!`;
+}
+
+const chat = conversation();
+console.log(chat.next()); // { value: "What's your name?", done: false }
+console.log(chat.next("Alice")); // { value: "How old are you?", done: false }
+console.log(chat.next(30)); // { value: "Hello Alice, you are 30 years old!", done: true }
+```
+
+Lazy infinite sequences:
+
+```javascript
+function* fibonacci() {
+  let a = 0,
+    b = 1;
+  while (true) {
+    yield a;
+    [a, b] = [b, a + b];
+  }
+}
+
+function take(n, iterable) {
+  const result = [];
+  for (const value of iterable) {
+    if (result.length >= n) break;
+    result.push(value);
+  }
+  return result;
+}
+
+take(10, fibonacci()); // [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
+```
+
+Composable lazy operations:
+
+```javascript
+function* map(iterable, fn) {
+  for (const value of iterable) {
+    yield fn(value);
+  }
+}
+
+function* filter(iterable, predicate) {
+  for (const value of iterable) {
+    if (predicate(value)) {
+      yield value;
+    }
+  }
+}
+
+// e.g first 5 even Fibonacci numbers
+take(
+  5,
+  filter(fibonacci(), (x) => x % 2 === 0),
+); // [0, 2, 8, 34, 144]
+// doesn't compute all the Fibonacci numbers, just the ones needed to find the first 5 even ones
+```
+
+Controlled async flow:
+
+```javascript
+// paginated API with back-pressure control
+async function* paginatedFetch(url) {
+  let cursor = null;
+
+  while (true) {
+    const params = cursor ? `?cursor=${cursors.next}` : "";
+    const response = await fetch(url + params);
+    const { data, nextCursor } = await response.json();
+
+    for (const item of data) {
+      yield item; // yields items one by one, allowing consumer to process them at their own pace
+    }
+
+    if (!nextCursor) break; // no more pages
+    cursor = nextCursor;
+  }
+}
+
+// process items one at a time
+// next fetch only occurs after consuming all items in page
+async function processAll() {
+  for await (const item of paginatedFetch("/api/items")) {
+    await processItem(item); // some async processing
+    if (item.shouldStop) break; // can stop early if needed
+  }
+}
+```
