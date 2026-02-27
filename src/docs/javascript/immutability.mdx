@@ -1,0 +1,54 @@
+---
+title: Immutability
+description: Understanding JavaScript immutability and how to work with immutable data structures.
+order: 6
+---
+
+Mutating data in JS causes hard to track bugs. This is especially noticeable in React, where state mutations can cause unexpected re-renders or stale data.
+
+```javascript
+// Example of mutation
+const user = { name: "Alice", age: 30 };
+const copy = user;
+copy.age = 31; // mutates original user
+console.log(user.age); // 31 - unexpected mutation
+
+// Shallow copy with spread operator (only works for flat objects - nested objects still mutate)
+const user2 = { ...user };
+
+// Deep copy
+// 1. structuredClone (modern browsers)
+const user3 = structuredClone(user);
+
+// 2. JSON (doesn't work with functions, dates become strings and no undefined)
+const user4 = JSON.parse(JSON.stringify(user));
+
+// immutable patterns
+const state = {
+  users: [
+    { id: 1, name: "Alice", scores: [10, 20] },
+    { id: 2, name: "Bob", scores: [15, 25] },
+  ],
+  settings: {
+    theme: "dark",
+    notifications: true,
+  },
+};
+
+// update a nested property immutably
+const newState = {
+  ...state,
+  users: state.users.map((u) => (u.id === 1 ? { ...u, scores: [...u.scores, 30] } : u)),
+}; // adds score 30 to Alice's scores without mutating original state
+
+// array immutability
+const arr = [1, 2, 3];
+const added = [...arr, 4]; // creates a new array with 4 added
+const prepended = [0, ...arr]; // creates a new array with 0 prepended
+const removed = arr.filter((x) => x !== 2); // creates a new array without 2
+const updated = arr.map((x) => (x === 2 ? 20 : x)); // creates a new array with 2 updated to 20
+```
+
+To avoid immutability, don't use `push`, `pop`, `sort`, `splice`, `reverse` etc.
+
+Use `map`, `filter`, `concat`, `slice`, `toSorted`, `toReversed`, `toSpliced` etc. instead which return new arrays.

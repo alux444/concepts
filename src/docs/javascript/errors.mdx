@@ -1,0 +1,124 @@
+---
+title: Errors and Error Handling
+description: Understanding errors and error handling in JavaScript with examples and use cases.
+order: 11
+---
+
+Custom errors
+
+```javascript
+class AppError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "AppError";
+  }
+}
+
+class ValidationError extends AppError {
+  constructor(message) {
+    super(message);
+    this.name = "ValidationError";
+  }
+}
+
+class NotFoundError extends AppError {
+  constructor(message) {
+    super(message);
+    this.name = "NotFoundError";
+  }
+}
+
+async function getUser(id) {
+  const user = await database.findUserById(id);
+  if (!user) throw new NotFoundError(`User with id ${id} not found`);
+  return user;
+}
+
+async function handleRequest(req, res) {
+  try {
+    const user = await getUser(req.params.id);
+    res.send(user);
+  } catch (err) {
+    if (err instanceof NotFoundError) {
+      res.status(404).send(err.message);
+    } else {
+      console.error(err);
+      res.status(500).send("Internal Server Error");
+    }
+  }
+}
+```
+
+Result pattern
+
+```javascript
+// Instead of throwing, functions return { ok, value/error }
+class Result {
+  constructor(ok, value) {
+    this.ok = ok;
+    if (ok) {
+      this.value = value;
+    } else {
+      this.error = value;
+    }
+  }
+
+  static success(value) { return new Result(true, value); }
+  static failure(error) { return new Result(false, error); }
+
+  // chain operations that might fail
+  map(fn) {
+    if (!this.ok) return this; // propagate failure
+    try {
+      return Result.success(fn(this.value));
+    } catch (err) {
+      return Result.failure(err);
+    }
+  }
+
+  // chain operations that return Results
+  flatMap(fn) {
+    if (!this.ok) return this; // propagate failure
+    return fn(this.value);
+  }
+
+  // unwrap with default
+  unwrapOr(defaultValue) {
+    return this.ok ? this.value : defaultValue;
+  }
+}
+
+function tryCatch(fn) {
+  return function(...args) {
+    try {
+      const result = fn(...args);
+      if (result instance of Promise) {
+        return result.then(
+          value => Result.success(value),
+          err => Result.failure(err)
+        );
+      }
+      return Result.success(result);
+    } catch (err) {
+      return Result.failure(err);
+    }
+  }
+}
+
+const safeFetch = tryCatch(async (url) => {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+  return response.json();
+})
+
+async function loadUserData(userId) {
+  const result = await safeFetch(`/api/users/${userId}`);
+
+  return result
+    .map(data => ({
+      ...data,
+      fullName: `${data.firstName} ${data.lastName}`,
+    }))
+    .unwrapOr({ fullName: "Unknown User", error: true });
+}
+```

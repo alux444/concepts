@@ -1,0 +1,44 @@
+---
+title: Debouncing and Throttling
+description: Understanding debouncing and throttling in JavaScript with examples and use cases.
+order: 7
+---
+
+```javascript
+// Debounce: wait until the user stops doing something, then fire once
+// Use cases: search, form validation, resize handling
+function debounce(fn, delay) {
+  let timeoutId;
+
+  return function (...args) {
+    clearTimeout(timeoutId); // reset the timer on each call
+    timeoutId = setTimeout(() => {
+      fn.apply(this, args); // call the function after delay
+    }, delay);
+  };
+}
+
+const handleResize = debounce(() => {
+  console.log("Window resized");
+}, 300);
+window.addEventListener("resize", handleResize);
+
+// Throttle: fire at most N ms, guarantee regular execution
+// Use cases: scroll handling, rate-limited APIs, mouse move
+function throttle(fn, interval) {
+  let lastTime = 0;
+
+  return function (...args) {
+    const now = Date.now();
+    if (now - lastTime >= interval) {
+      lastTime = now;
+      fn.apply(this, args); // call the function immediately
+    }
+  };
+}
+
+const handleScroll = throttle(() => {
+  console.log("Scrolled");
+}, 200);
+window.addEventListener("scroll", handleScroll);
+```

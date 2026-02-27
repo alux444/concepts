@@ -1,0 +1,105 @@
+---
+title: Promises
+description: Understanding JavaScript promises and how they work.
+order: 5
+---
+
+## What is a promise?
+
+A promise is an object representing the eventual completion or failure of an asynchronous operation.
+
+There are three states for a promise, `pending`, `fulfilled`, and `rejected`.
+
+```javascript
+// basic mental model
+class SimplePromise {
+  constructor(executor) {
+    this.state = "pending";
+    this.value = undefined;
+    this.callbacks = [];
+
+    const resolve = (value) => {
+      if (this.state !== "pending") return;
+      this.state = "fulfilled";
+      this.value = value;
+      this.callbacks.forEach((cb) => cb.onFulfilled(value));
+    };
+
+    const reject = (reason) => {
+      if (this.state !== "pending") return;
+      this.state = "rejected";
+      this.value = reason;
+      this.callbacks.forEach((cb) => cb.onRejected(reason));
+    };
+
+    executor(resolve, reject);
+  }
+
+  then(onFulfilled, onRejected) {
+    // returns new promise for promise chains
+    return new SimplePromise((resolve, reject) => {
+      this.callbacks.push({
+        onFulfilled: (val) => resolve(onFulfilled(val)),
+        onRejected: (err) => reject(onRejected(err)),
+      });
+    });
+  }
+} 
+```
+
+## Async and await
+
+Are just simply syntax sugar on top of promises, making asynchronous code look more like synchronous code.
+
+```javascript
+async function fetchData() {
+  try {
+    const response = await fetch("https://api.example.com/data");
+    const data = await response.json();
+    console.log(data);
+  } catch (error) {
+    console.error("Error fetching data:", error);
+  }
+}
+
+// equivalent
+function fetchData() {
+  return fetch("https://api.example.com/data")
+    .then((response) => response.json())
+    .then((data) => console.log(data))
+    .catch((error) => console.error("Error fetching data:", error));
+}
+```
+
+## Promise patterns
+
+```javascript
+const promises = [ fetch("/api/data1"), fetch("/api/data2"), fetch("/api/data3")];
+
+async function parallel() {
+  const results = await Promise.all(promises);
+  console.log(results);
+}
+
+async function parallelWithErrors() {
+  const results = await Promise.allSettled(promises);
+  results.forEach((result) => {
+    if (result.status === "fulfilled") {
+      console.log("Success:", result.value);
+    } else {
+      console.error("Error:", result.reason);
+    }
+  });
+  console.log(results);
+}
+
+async function raceForFirstResolution() {
+  const first = await Promise.any(promises);
+  console.log("First resolved:", first);
+}
+
+async function raceForCompletion() {
+  const first = await Promise.race(promises);
+  console.log("First result:", first);
+}
+```
