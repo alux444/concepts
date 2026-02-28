@@ -1,0 +1,79 @@
+---
+title: Memoization
+description: Understanding memoization in React
+order: 4
+---
+
+> !! Memoization hooks are not needed after React 19, see `use` hook for more details. This page is still useful for understanding the concept of memos.
+
+## Memoization
+
+> React has multiple hooks for memoization. These are only intended for performance, not for correctness. You can use them as an optimization, but they should not be required for your app to work.
+
+### React.memo
+
+> Helps skip re-rending a child when props haven't changed, using a shallow comparison of props.
+
+```jsx
+const ExpensiveList = React.memo(function ExpensiveList({ items }) {
+  // some expensive rendering logic
+  return (
+    <ul>
+      {items.map((item) => (
+        <li key={item.id}>{item.name}</li>
+      ))}
+    </ul>
+  );
+});
+```
+
+Since objects and functions are compared by reference, if you pass a new object or function on every render, the memoization with `React.memo` won't work as expected.
+
+```jsx
+function Parent() {
+  const [count, setCount] = useState(0);
+
+  // This object is recreated on every render, so ExpensiveList will re-render every time, even if items haven't changed
+  const handleSelect = (id) => {
+    // handle select logic
+  };
+
+  // This array is recreated on every render, so ExpensiveList will re-render every time, even if items haven't changed
+  const filteredItems = items.filter((item) => item.value > count);
+
+  return (
+    <div>
+      <button onClick={() => setCount((c) => c + 1)}>Increment</button>
+      <ExpensiveList items={filteredItems} onSelect={handleSelect} />
+    </div>
+  );
+}
+```
+
+## useMemo and useCallback
+
+> `useMemo` memoizes a value, while `useCallback` memoizes a function. They both take a dependency array and only recompute the value/function when dependencies change.
+
+```jsx
+function Parent() {
+  const [count, setCount] = useState(0);
+  const [items] = useState([...]); // some items
+
+  const handleSelect = useCallback((id) => {
+    // handle select logic
+  }, []); // no dependencies, so this function will be memoized once and never change
+
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => item.value > count);
+  }, [items, count]); // only recompute when items or count change
+
+  return (
+    <div>
+      <button onClick={() => setCount((c) => c + 1)}>Increment</button>
+      <ExpensiveList items={filteredItems} onSelect={handleSelect} />
+    </div>
+  );
+}
+```
+
+- Now both props are stable references, and memoing works as expected. `ExpensiveList` will only re-render when `filteredItems` or `handleSelect` change, which only happens when their dependencies change.

@@ -1,0 +1,190 @@
+---
+title: useOptimistic, useTransition, useDeferredValue, useId
+description: Understanding the useOptimistic, useTransition, useDeferredValue, and useId hooks
+order: 10
+---
+
+## `useOptimistic()` Hook
+
+> Shows the expected result immediately while the actual result is pending. If request fails, React reverts.
+
+```jsx
+import { useOptimistic } from "react";
+
+function LikeButton({ postId, initialLiked }) {
+  const [liked, setLiked] = useOptimistic(initialLiked, (liked) => !liked);
+
+  const handleClick = () => {
+    setLiked(); // immediately toggle liked state
+
+    fetch(`/api/posts/${postId}/like`, { method: "POST" }).catch(() => {
+      setLiked(); // revert if request fails
+    });
+  };
+
+  return <button onClick={handleClick}>{liked ? "Unlike" : "Like"}</button>;
+}
+```
+
+## `useTransition()` Hook
+
+> Marks state updates as non-urgent, allowing React to prioritize more important updates and keep the UI responsive
+
+`useTransition()` for responsiveness
+
+```jsx
+import { useTransition } from "react";
+
+// filtering a huge list blocks typing
+function SearchableList({ items }) {
+  const [query, setQuery] = useState("");
+  const filteredItems = items.filter((item) => item.includes(query));
+
+  return (
+    <div>
+      <input value={query} onChange={(e) => setQuery(e.target.value)} />
+      <ul>
+        {filteredItems.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// useTransition allows us to keep the UI responsive while filtering
+function SearchableList({ items }) {
+  const [query, setQuery] = useState("");
+  const [isPending, startTransition] = useTransition();
+  const filteredItems = items.filter((item) => item.includes(query));
+
+  const handleChange = (e) => {
+    const value = e.target.value;
+    startTransition(() => {
+      setQuery(value); // this update is now non-urgent
+    });
+  };
+
+  return (
+    <div>
+      <input value={query} onChange={handleChange} />
+      {isPending && <p>Loading...</p>} {/* show pending state */}
+      <ul>
+        {filteredItems.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// Now typing is always responsive as the list update happens in the background.
+// If the user types again before filter completes, the previous filter is cancelled and a new one starts with the latest query.
+```
+
+`useTransition()` for navigation
+
+```jsx
+function TabContainer() {
+  const [tabs, setTabs] = useState("home");
+  const [isPending, startTransition] = useTransition();
+
+  function selectTab(tab) {
+    startTransition(() => {
+      setTabs(tab); // this update is now non-urgent, so React can keep the UI responsive
+    });
+  }
+
+  return (
+    <div>
+      <nav style={{ opacity: isPending ? 0.5 : 1 }}>
+        <button onClick={() => selectTab("home")}>Home</button>
+        <button onClick={() => selectTab("profile")}>Profile</button>
+        <button onClick={() => selectTab("settings")}>Settings</button>
+      </nav>
+
+      {tab === "home" && <Home />}
+      {tab === "profile" && <Profile />}
+      {tab === "settings" && <Settings />}
+    </div>
+  );
+}
+```
+
+Now the navigation is always responsive, even if the tab content takes a long time to load.
+
+## `useDeferredValue()` Hook
+
+> Similar to `useTransition()`, but instead of marking an update as non-urgent, it returns a deferred version of a value that updates after a delay.
+
+Use this over `useTransition()` when someone else updates state and you want to defer your reaction to it
+
+```jsx
+function SearchResults({ query }) {
+  const deferredQuery = useDeferredValue(query);
+  const isStale = query !== deferredQuery; // can use this if we need to
+
+  const results = useMemo(() => {
+    return expensiveSearch(deferredQuery);
+  }, [deferredQuery]);
+
+  return (
+    <ul>
+      {results.map((result) => (
+        <li key={result.id}>{result.name}</li>
+      ))}
+    </ul>
+  );
+}
+
+function SearchPage() {
+  const [query, setQuery] = useState("");
+
+  return (
+    <div>
+      {/* input will stay responsive */}
+      <input value={query} onChange={(e) => setQuery(e.target.value)} />
+      {/* results will update after a delay, but input won't be blocked */}
+      {isStale && <p>Updating results...</p>}
+      <SearchResults query={query} />
+    </div>
+  );
+}
+```
+
+## `useId()` Hook
+
+> Provides stable unique IDs that are consistent across server and client, useful for accessibility attributes and form inputs
+
+Generating IDs for form labels / aria attributes can result in mismatches between server and client rendering
+
+This is because with server-side rendering, if actual rendering order differs between server and client, the generated IDs will be different, causing hydration issues.
+
+`useId` generates IDs based on component tree position
+
+```jsx
+import { useId } from "react";
+
+function FormField({ label, type = "text" }) {
+  const id = useId();
+
+  return (
+    <div>
+      <label htmlFor={id}>{label}</label>
+      <input id={id} type={type} />
+    </div>
+  );
+}
+
+function PasswordField() {
+  const id = useId();
+
+  return (
+    <div>
+      <label htmlFor={`${id}-password`}>Password</label>
+      <input id={`${id}-password`} type="password" />
+      <p id={`${id}-hint`}>Must be at least 8 characters</p>
+    </div>
+  );
+}
+```

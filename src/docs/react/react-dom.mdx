@@ -1,0 +1,90 @@
+---
+title: DOM
+description: Understanding the DOM in React
+order: 1
+---
+
+## DOM
+
+React doesn't interact with the real DOM directly.
+It maintains a virtual DOM (tree of plain JS objects) and diffs it against the previous version, applying the minimum set of real DOM changes.
+
+```jsx
+<div className="card">
+  <h2>Title</h2>
+  <p>Content</p>
+</div>
+
+// Compiles to:
+{
+  type: "div",
+  props: {
+    className: "card",
+    children: [
+      { type: "h2", props: { children: "Title" } },
+      { type: "p", props: { children: "Content" } }
+    ]
+  }
+}
+```
+
+## Reconciliation rules
+
+> The diffing algorithm is called reconciliation, and has some rules to determine how to update the real DOM:
+
+Rule 1: different element type -> destroy and rebuild entire subtree
+
+```jsx
+<div> <Counter /> </div> // old
+<section> <Counter /> </section> // new
+```
+
+- Since `div` is changed to `section`, React will destroy the entire subtree and create a new one, even if `Counter` is the same.
+- All state in `Counter` will be lost.
+- All children are unmounted and remounted, even if they are the same.
+
+Rule 2: Same element type -> keep the DOM node, update changed attributes
+
+```jsx
+<div className="old" title="Hello" /> // old
+<div className="new" title="Hello" /> // new
+```
+
+- Since the element type is the same (`div`), React will keep the same DOM node and only update the changed attributes (`className`).
+- State of child components is preserved since the DOM node is reused.
+
+Rule 3: Same component type -> keep instance, update props
+
+```jsx
+<Counter count={1} /> // old
+<Counter count={2} /> // new
+```
+
+- Since the component type is the same (`Counter`), React will keep the same instance and only update the changed props (`count`).
+- State of the component is preserved since the instance is reused.
+
+Rule 4: Keys identify elements in a list
+
+- Without keys, React uses the index to match elements in a list, which can cause issues when items are added/removed/reordered.
+
+```jsx
+const old = [<li> A</li>, <li> B</li>];
+const new = [((<li>C </li>), (<li> A</li>), (<li> B</li>))];
+```
+
+- With no keys:
+  - Index 0 changed from A -> C
+  - Index 1 changed from B -> A
+  - Index 2 changed from undefined -> B
+- All three items updated, losing state and causing unnecessary DOM changes.
+
+```jsx
+const old = [<li key="a"> A</li>, <li key="b"> B</li>];
+const new = [<li key="c"> C</li>, <li key="a
+```
+
+- With kys:
+  - Key "a" moved from index 0 -> 1 (A is reused, state preserved)
+  - Key "b" moved from index 1 -> 2 (B is reused, state preserved)
+  - Key "c" added at index 0 (new element created)
+- Only one new element created, and no existing elements are destroyed, preserving state and minimizing DOM

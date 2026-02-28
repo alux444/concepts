@@ -1,0 +1,133 @@
+---
+title: useActionState
+description: Understanding the useActionState hook
+order: 9
+---
+
+## `useActionState()` Hook
+
+> The new `useActionState()` hook allows for a more flexible way to handle state that is tied to an action, such as a form submission or a button click
+
+Old approach
+
+```jsx
+function ContactForm() {
+  const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsPending(true);
+    setError(null);
+    setSuccess(false);
+
+    try {
+      await sendContactForm();
+      setSuccess(true);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {/* form fields */}
+      <button type="submit" disabled={isPending}>
+        Submit
+      </button>
+      {isPending && <p>Submitting...</p>}
+      {error && <p>Error submitting form</p>}
+      {success && <p>Form submitted successfully!</p>}
+    </form>
+  );
+}
+```
+
+New approach with `useActionState()`
+
+```jsx
+import { useActionState } from "react";
+
+async function submitContactForm(previousState, formData) {
+  try {
+    const email = formData.get("email");
+    const message = formData.get("message");
+
+    if (!email || !message) {
+      return { error: "Invalid email", success: false };
+    }
+
+    await submitToAPI({ email, message });
+    return { error: null, success: true };
+  } catch (err) {
+    return { error: err.message, success: false };
+  }
+}
+
+function ContactForm() {
+  const [state, formAction, isPending] = useActionState(
+    submitContactForm,
+    { error: null, success: false }, // initial state
+  );
+
+  return (
+    <form action={formAction}>
+      {/* form fields */}
+      <button type="submit" disabled={isPending}>
+        Submit
+      </button>
+      {isPending && <p>Submitting...</p>}
+      {state.error && <p>Error submitting form: {state.error}</p>}
+      {state.success && <p>Form submitted successfully!</p>}
+    </form>
+  );
+}
+```
+
+With multi-step forms, previous state can be carried between submissions
+
+```jsx
+async function wizardAction(previousState, formData) {
+  const step = prevState.step;
+
+  if (step === 1) {
+    return {
+      step: 2,
+      name: formData.get("name"),
+      email: formData.get("email"),
+    };
+  }
+
+  if (step === 2) {
+    await createAccount({
+      name: previousState.name,
+      email: previousState.email,
+      password: formData.get("password"),
+    });
+    return { step: 3, completed: true };
+  }
+}
+
+function SignupWizard() {
+  const [state, action, isPending] = useActionState(wizardAction, { step: 1 });
+
+  return (
+    <form action={action}>
+      {state.step === 1 && (
+        <>
+          <input name="name" placeholder="Name" />
+          <input name="email" placeholder="Email" />
+        </>
+      )}
+      {state.step === 2 && <input name="password" placeholder="Password" />}
+      {state.completed && <p>Account created!</p>}
+      <button type="submit" disabled={isPending}>
+        Next
+      </button>
+    </form>
+  );
+}
+```

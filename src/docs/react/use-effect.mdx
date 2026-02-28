@@ -1,0 +1,138 @@
+---
+title: useEffect
+description: Understanding useEffect in React
+order: 3
+---
+
+> !! useEffect is not as relevant after React 19, see `use` and `Suspense` for more details. This page is still useful for understanding the concept of effects and their lifecycle.
+
+## useEffect
+
+> useEffect is a synchronization mechanism for syncing the component with some external system (e.g. DOM, API, subscription).
+
+```jsx
+function SearchResults({ query }) {
+  const [results, setResults] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    // This effect runs after every render when 'query' changes
+    fetch(`/api/search?q=${query}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled) {
+          setResults(data);
+        }
+      });
+
+    // Cleanup - runs before the next effect and on unmount
+    return () => {
+      cancelled = true; // prevents setting state if the component unmounts or query changes before fetch completes
+      // this just avoids potential memory leak / unnecessary work
+    };
+  }, [query]); // dependency array - effect runs when 'query' changes
+
+  return (
+    <ul>
+      {results.map((result) => (
+        <li key={result.id}>{result.name}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+## Dependency array
+
+> React stores the previous dependency array, and before running effect, compares each dependency with `Object.is()`
+
+- If any dependency has changed, the effect runs. Otherwise, it skips running the effect.
+
+## Common useEffect bugs
+
+```jsx
+useEffect(() => {
+  console.log("Effect ran");
+}); // no array = runs on every render
+
+useEffect(() => {
+  console.log("Effect ran");
+}, []); // empty array = runs only once on mount
+
+useEffect(() => {
+  console.log("Effect ran");
+}, [data]); // runs whenever 'data' changes
+
+// Common bug - stale closure
+function Timer() {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setCount(count + 1); // captures 'count' from initial render, will always set count to 1
+    }, 1000);
+
+    return () => clearInterval(id);
+  }, []); // empty array - effect runs only once, so it captures the initial count value forever
+
+  // Fix 1: functional updater
+  useEffect(() => {
+    const id = setInterval(() => {
+      setCount((c) => c + 1); // uses functional updater, so it always gets the latest count value
+    }, 1000);
+
+    return () => clearInterval(id);
+  }, []); // still runs only once, but now it works correctly
+
+  // Fix 2: include count in deps (not recommended for intervals as it recreates the interval on every count change)
+  useEffect(() => {
+    const id = setInterval(() => {
+      setCount(count + 1); // captures 'count' from the current render, so
+    }, 1000);
+    return () => clearInterval(id);
+  }, [count]); // runs on every count change, which is not ideal for intervals as
+
+  // Fix 3: useRef to store mutable value that doesn't trigger re-renders
+  const countRef = useRef(0);
+  useEffect(() => {
+    const id = setInterval(() => {
+      countRef.current += 1; // updates mutable ref value
+      setCount(countRef.current); // sets state to the current ref value
+    }, 1000);
+    return () => clearInterval(id);
+  }, []); // runs only once, and countRef.current is always up to date
+
+  return <div>{count}</div>;
+}
+```
+
+## Cleanup timing
+
+```jsx
+function ChatRoom({ roomId }) {
+  useEffect(() => {
+    console.log("Connecting to chat room", roomId);
+    const connection = createConnection(roomId);
+    connection.connect();
+
+    return () => {
+      console.log("Disconnecting from chat room", roomId);
+      connection.disconnect();
+    };
+  }, [roomId]); // runs whenever roomId changes
+
+  return <div>Chat Room {roomId}</div>;
+}
+```
+
+- Mounting with `roomId = "general"`
+  - "Connecting to chat room general" is logged
+
+- Change `roomId` to "random"
+  - "Disconnecting from chat room general" is logged (cleanup runs before the next effect)
+  - "Connecting to chat room random" is logged (new effect runs)
+
+- Unmount component
+  - "Disconnecting from chat room random" is logged (cleanup runs on unmount)
+
+- The cleanup always runs with the values from when the effect ran, not the current values. Each render's effect has its own closure.

@@ -1,0 +1,419 @@
+---
+title: Performance
+description: Understanding Performance in React
+order: 11
+---
+
+## Code splitting
+
+> Instead of shipping one large JS bundle, split into chunks that load on demand
+
+Without code splitting:
+
+- `bundle.js` - 1MB, contains all code for the app
+- user visits homepage -> downloads all code for every page, feature, modal, etc.
+- a lot of this code they might never use
+
+With code splitting:
+
+- `main.js` - 200KB, contains code for homepage and common components
+- `dashboard.js` - 300KB, contains code for dashboard page
+- `settings.js` - 300KB, contains code for settings page
+- user visits homepage -> downloads `main.js` only
+- user visits dashboard -> downloads `main.js` (cached) + `dashboard.js`
+
+### Route-based code splitting
+
+```jsx
+import { lazy, Suspense } from "react";
+import { Routes, Route } from "react-router-dom";
+
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Analytics = lazy(() => import("./pages/Analytics"));
+
+function App() {
+  return (
+    <Suspense fallback={<PageSkeleton />}>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/analytics" element={<Analytics />} />
+      </Routes>
+  )
+}
+```
+
+### Component-based code splitting
+
+```jsx
+function Dashboard() {
+  const [showChart, setShowChart] = useState(false);
+  const HeavyChart = lazy(() => import("./components/HeavyChart"));
+
+  return (
+    <div>
+      <DashboardHeader />
+      <DashboardStats />
+
+      <button onClick={() => setShowChart((s) => !s)}>{showChart ? "Hide Chart" : "Show Chart"}</button>
+
+      {showChart && (
+        <Suspense fallback={<ChartSkeleton />}>
+          <HeavyChart />
+        </Suspense>
+      )}
+    </div>
+  );
+}
+```
+
+### Preloading
+
+With hover intent - if user hovers over a link for 500ms, start preloading the chunk
+
+```jsx
+const AnalyticsPage = lazy(() => import("./pages/Analytics"));
+
+function NavLink({ to, children }) {
+  const [isHovering, setIsHovering] = useState(false);
+
+  useEffect(() => {
+    if (isHovering) {
+      const timeout = setTimeout(() => {
+        AnalyticsPage.preload(); // start preloading after 500ms hover
+      }, 500);
+      return () => clearTimeout(timeout);
+    }
+  }, [isHovering]);
+
+  return (
+    <a href={to} onMouseEnter={() => setIsHovering(true)} onMouseLeave={() => setIsHovering(false)}>
+      {children}
+    </a>
+  );
+}
+```
+
+Preloading after main page is idle
+
+```jsx
+function useIdlePreload(importFunction) {
+  useEffect(() => {
+    // requestIdleCallback is a browser API that calls the callback when the main thread is idle
+    const id = requestIdleCallback(() => {
+      importFunction();
+    });
+    return () => cancelIdleCallback(id);
+  }, [importFunction]);
+}
+
+function App() {
+  useIdlePreload(() => import("./pages/Analytics")); // preload analytics page when idle
+
+  return (
+    <div>
+      <Header />
+      <Routes>{/* routes */}</Routes>
+    </div>
+  );
+}
+```
+
+## Lazy Loading
+
+> Lazy loading images, components, data - any resource
+
+Image lazy loading
+
+```jsx
+// note: don't lazy load ANY images the user should see immediately on page load, like hero images or above the fold content
+function ImageGallery({ images }) {
+  return (
+    <div>
+      {images.map((src) => (
+        <img
+          key={src}
+          src={src}
+          loading="lazy" // browser handles lazy loading
+          decoding="async" // browser can decode image asynchronously
+          width={image.width} // set width/height to prevent layout shift
+          alt="Gallery image"
+        />
+      ))}
+    </div>
+  );
+}
+```
+
+Custom lazy loading with Intersection Observer
+
+```jsx
+function useLazyLoad(ref, options = {}) {
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    if (!ref.current) return;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setIsVisible(true);
+        observer.disconnect(); // stop observing after it becomes visible
+      },
+      {
+        // rootMargin: "200px", // start loading when it's within 200px of the viewport
+        // threshold: 0.1, // trigger when 10% of the element is visible
+      }
+    }, options);
+
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [ref, options]);
+
+  return isVisible;
+}
+
+function LazyComponent({ importComponent, fallback }) {
+  const ref = useRef(null);
+  const isVisible = useLazyLoad(ref);
+  const Component = isVisible ? React.lazy(importComponent) : null;
+
+  return (
+    <div ref={ref}>
+      {isVisible ? (
+        <Suspense fallback={fallback}>
+          <Component />
+        </Suspense>
+      ) : (
+        fallback
+      )}
+    </div>
+  )
+}
+
+<LazyComponent
+  importComponent={() => import("./HeavyComponent")}
+  fallback={<h1>Loading...</h1>}
+/>
+```
+
+Data lazy loading
+
+```jsx
+function useInfiniteScroll(ref, options = {}) {
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    if (!ref.current) return;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      setIsVisible(entry.isIntersecting);
+      // don't disconnect here, we want to keep observing for infinite scroll - it will toggle isVisible on and off as the user scrolls
+    }, options);
+
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [ref, options]);
+
+  return isVisible;
+}
+
+function InfiniteList() {
+  const [items, setItems] = useState([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const loadMoreRef = useRef(null);
+  const options = useMemo(() => ({ rootMargin: "200px" }), []);
+  const isVisible = useInfiniteScroll(loadMoreRef, options);
+
+  useEffect(() => {
+    if (!isVisible || loading || !hasMore) return;
+
+    setLoading(true);
+
+    fetch(`/api/items?page=${page}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setItems((prev) => [...prev, ...data.items]);
+        setHasMore(data.hasMore);
+        setPage((p) => p + 1);
+      })
+      .finally(() => setLoading(false));
+  }, [isVisible, loading, hasMore, page]);
+
+  return (
+    <div>
+      {items.map((item) => (
+        <div key={item.id}>{item.name}</div>
+      ))}
+      {hasMore && <div ref={loadMoreRef}>{loading ? "Loading..." : "Load more"}</div>}
+    </div>
+  );
+}
+```
+
+## Tree Shaking
+
+> Remove unused code from the final bundle, requires a correct setup with ES modules and a bundler that supports tree shaking (like Webpack or Rollup)
+
+- choose tree-shakeable libraries that use ES modules for best performance
+
+```jsx
+// utils.js
+export function add(x, y) {
+  return x + y;
+}
+export function subtract(x, y) {
+  return x - y;
+}
+export function multiply(x, y) {
+  return x * y;
+}
+export function divide(x, y) {
+  return x / y;
+}
+
+// app.js
+import { add } from "./utils";
+console.log(add(2, 3)); // only 'add' function is used
+// bundler removes 'subtract', 'multiply', and 'divide' from the final bundle
+```
+
+### What can break tree shaking
+
+```jsx
+// 1. CommonJS modules - use ES modules instead
+const { add, subtract } = require("./utils"); // CommonJS - prevents tree shaking as require is dynamic
+
+// 2. Side effects in modules
+// utils.js
+export function add(x, y) { return x + y; }
+console.log("Utils module loaded"); // side effect - bundler can't safely remove this module even if 'add' is not used
+
+// 3. Barrel files that re-export everything from other modules
+// components/index.js
+export { Button } from "./Button";
+export { Modal } from "./Modal";
+
+// in another file:
+import { Button } from "./components"; // imports the entire barrel file, including Modal, preventing tree shaking of Modal
+
+// 4. Dynamic property access breaks tree shaking
+import * as utils from "./utils";
+const function = utils["add"]; // dynamic access - bundler can't determine which function is used, so it includes all of utils.js
+```
+
+### Verifying tree shaking
+
+```jsx
+// in package.json, the "sideEffects" field tells the bundler which files have side effects and should not be tree shaken
+{
+  "name": "my-library",
+  "version": "1.0.0",
+  "main": "index.js",
+  "sideEffects": false // indicates that all files in this package are safe to tree shake
+}
+// some can specify which files have side effects
+{
+  "name": "my-library",
+  "version": "1.0.0",
+  "main": "index.js",
+  "sideEffects": [
+    "./src/someFileWithSideEffects.js",
+    "*.css" // all CSS files have side effects
+  ]
+}
+```
+
+## Analysis tools
+
+- Webpack Bundle Analyzer
+  - Visualize size of webpack output files
+  - Look for unexpectedly large dependencies, e.g moment.js 300KB
+  - Look for duplicate dependencies, e.g two versions of lodash
+  - If any chunks are >200KB gzipped, consider code splitting or finding smaller alternatives
+  - Forgotten libraries
+
+- Lighthouse + Web Core Vitals
+  - Metrics of user experience that affect search rankings
+  - Largest Contentful Paint (LCP) - time to load main content
+    - Good: \< 2.5s
+    - Needs Improvement: 2.5s - 4s
+    - Poor: \> 4s
+  - Cumulative Layout Shift (CLS) - visual stability of the page
+    - How much does the page jump around while loading?
+    - Good: \< 0.1
+    - Needs Improvement: 0.1 - 0.25
+    - Poor: \> 0.25
+  - Interaction to Next Paint (INP) - responsiveness of the page to user interactions
+    - Measures the time from when a user interacts with the page (click, tap, key press) to when the next frame is painted
+    - Good: \< 200ms
+    - Needs Improvement: 200ms - 500ms
+    - Poor: \> 500ms
+
+## Image Optimization
+
+Images are often the largest assets on a webpage, so optimizing them can have a big impact on performance.
+
+```jsx
+<img
+  src="/photo-800.webp"
+  srcSet="
+    /photo-400.webp 400w,
+    /photo-800.webp 800w,
+    /photo-1200.webp 1200w,
+    /photo-1600.webp 1600w
+  "
+  sizes="
+    (max-width: 640px) 100vw,
+    (max-width: 1024px) 50vw,
+    33vw
+  "
+  alt="Product photo"
+  width={800}
+  height={600}
+  loading="lazy"
+  decoding="async"
+/>
+// srcSet: available image versions with their widths
+// sizes: tells browser how wide the image will display at each breakpoint
+// Browser picks the smallest image that fits
+
+
+// MODERN FORMATS with fallbacks
+<picture>
+  <source srcSet="/photo.avif" type="image/avif" />  {/* smallest, newest */}
+  <source srcSet="/photo.webp" type="image/webp" />  {/* good support */}
+  <img src="/photo.jpg" alt="Photo" />                 {/* fallback */}
+</picture>
+// AVIF: ~50% smaller than JPEG
+// WebP: ~30% smaller than JPEG
+// Browser picks the first format it supports
+
+
+// NextJS Image component
+import Image from "next/image";
+
+<Image
+  src="/hero.jpg"
+  width={1200}
+  height={600}
+  alt="Hero"
+  priority              // above the fold — don't lazy load
+  placeholder="blur"    // show blurred version while loading
+  blurDataURL={blurHash} // tiny base64 preview
+/>
+// Automatically:
+// - Serves WebP/AVIF if browser supports it
+// - Generates responsive sizes
+// - Lazy loads by default
+// - Prevents CLS (width/height required)
+// - Optimizes on-demand (not at build time)
+
+
+// BLUR PLACEHOLDER: show a tiny preview immediately
+// Generate blur hashes at build time or upload time
+// Libraries: placeholder, blurhash, thumbhash
+```

@@ -1,0 +1,62 @@
+---
+title: useFormStatus
+description: Understanding the useFormStatus hook
+order: 10
+---
+
+## `useFormStatus()` Hook
+
+> The new `useFormStatus()` hook allows you to track the status of a form submission without having to manage state manually
+
+```jsx
+import { useFormStatus } from "react";
+
+function SubmitButton({ children }) {
+  const { pending, data, method, action } = useFormStatus();
+  // pending - is form currently submitting
+  // data - form data being submitted
+  // method - form method (GET, POST, etc.)
+  // action - form action function
+
+  return (
+    <button type="submit" disabled={pending}>
+      {pending ? "Submitting..." : children}
+    </button>
+  );
+}
+
+function FormFields() {
+  const { pending } = useFormStatus();
+  return (
+    <>
+      <input name="email" placeholder="Email" disabled={pending} />
+      <input name="message" placeholder="Message" disabled={pending} />
+    </>
+  );
+}
+
+function ContactForm() {
+  const [state, formAction] = useActionState(submitContactForm, { error: null, success: false });
+
+  return (
+    <form action={formAction}>
+      <FormFields /> {/* disables inputs while submitting */}
+      <SubmitButton>Submit</SubmitButton> {/* shows pending state */}
+    </form>
+  );
+}
+
+// NEVER call useFormStatus in the form component itself
+function Bad() {
+  const { pending } = useFormStatus(); // always false, no parent <form>
+
+  return (
+    <form action={someAction}>
+      <button type="submit" disabled={pending}>
+        Submit
+      </button>{" "}
+      {/* pending is always false */}
+    </form>
+  );
+}
+```
