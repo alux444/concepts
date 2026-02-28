@@ -1,0 +1,66 @@
+---
+title: Suspense
+description: Understanding Suspense in React
+order: 7
+---
+
+> Suspense allows for declarative handling of loading states
+
+```jsx
+const HeavyComponent = React.lazy(() => import("./HeavyComponent")); // with code splitting
+
+function App() {
+  return (
+    <div>
+      <Header />
+      <Suspense fallback={<h1>Loading...</h1>}>
+        <HeavyComponent />
+      </Suspense>
+    </div>
+  );
+}
+```
+
+```jsx
+function Dashboard() {
+  return (
+    <div>
+      <Suspense fallback={<h1>Loading user...</h1>}>
+        <UserProfile />
+      </Suspense>
+      <Suspense fallback={<PostsSkeleton />}>
+        <Posts />
+      </Suspense>
+    </div>
+  );
+}
+```
+
+> We can also use `useSuspenseQuery` in React Query to suspend while waiting for data
+
+```jsx
+import { useSuspenseQuery } from "react-query";
+
+function UserProfile({ userId }) {
+  const { data: user } = useSuspenseQuery(["user", userId], () => fetch(`/api/user/${userId}`).then((res) => res.json()));
+
+  // When the component renders, the data is guaranteed to be available
+  return <div>{user.name}</div>;
+}
+
+function ProfilePage({ userId }) {
+  return (
+    <Suspense fallback={<h1>Loading profile...</h1>}>
+      <UserProfile userId={userId} />
+    </Suspense>
+  );
+}
+```
+
+## How suspense works
+
+1. Component throws a Promise during render
+2. React catches the thrown Promise
+3. React renders the nearest Suspense fallback
+4. When promise resolves, React re-renders the component
+5. This time the data is available, so it renders successfully without throwing

@@ -1,0 +1,97 @@
+---
+title: use
+description: Understanding the use() hook
+order: 8
+---
+
+## `use()` Hook
+
+> The new `use()` hook allows for a more flexible way to handle reading data
+
+Old approach
+
+```jsx
+function UserProfile({ userId }) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+
+    fetch(userId)
+      .then((data) => {
+        if (!cancelled) setUser(data);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+  });
+
+  if (loading) return <h1>Loading...</h1>;
+  if (error) return <h1>Error loading user</h1>;
+  return <div>{user.name}</div>;
+}
+```
+
+New approach with `use()`
+
+```jsx
+function UserProfile({ userId }) {
+  const user = use(fetch(userId)); // this will suspend while waiting for data
+  return <div>{user.name}</div>;
+}
+```
+
+`use()` can be called conditionally, unlike other hooks
+
+```jsx
+function UserProfile({ userId, showDetails }) {
+  const user = use(fetch(userId));
+  const details = showDetails ? use(fetch(`/api/user/${userId}/details`))
+  return (
+    <div>
+      <h1>{user.name}</h1>
+      {showDetails && <p>{details.info}</p>}
+    </div>
+  );
+```
+
+`use()` can also conditionally replace useContext
+
+```jsx
+function UserProfile() {
+  const theme = use(ThemeContext); // this will re-render when context changes
+  return <div style={{ background: theme.background, color: theme.color }}>User Profile</div>;
+}
+```
+
+> !! Don't create promises inside the component - they should be created outside and passed in, otherwise you'll create a new promise on every render which will cause infinite re-renders
+
+```jsx
+function Bad({ userId }) {
+  const user = use(fetch(`/api/user/${userId}`)); // creates new promise on every render - causes infinite re-render
+  return <div>{user.name}</div>;
+}
+
+function Good({ userId }) {
+  const userPromise = useMemo(() => fetch(`/api/user/${userId}`), [userId]); // creates promise once per userId
+  const user = use(userPromise);
+  return <div>{user.name}</div>;
+}
+
+// use a data fetching library like React Query which handles caching and deduplication for you
+function Best({ userId }) {
+  const user = use(
+    useSuspenseQuery(["user", userId], () =>
+      fetch(`/
+api/user/${userId}`).then((res) => res.json()),
+    ),
+  ); // React Query handles caching and deduplication
+  return <div>{user.name}</div>;
+}
+```

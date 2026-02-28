@@ -1,0 +1,82 @@
+---
+title: Render Lifecycle
+description: Understanding the render lifecycle in React
+order: 2
+---
+
+## Render Lifecycle
+
+> Rendering in react doesn't mean updating the DOM. It means calling the component function to get the new JSX
+
+1. Phase 1: Render (pure, no side effects)
+
+- React calls component functions
+- Builds new virtual DOM tree
+- Diffs against previous tree
+- Must be pure - no DOM mutation, no subscriptions, no side effects
+  - Why? - React might call component function multiple times during a single render (strict mode does this on purpose)
+  - It should go into `useEffect` - which will run once after rendering only
+
+2. Phase 2: Commit (side effects allowed)
+
+- React applies real DOM changes
+- Runs useLayoutEffect (synchronous, before paint) (very rarely used, just avoids that 'flicker' effect in useEffect as it runs before the browser paints)
+- Browser paints
+- Runs useEffect (asynchronous, after paint)
+
+```jsx
+function myComponent({ data }) {
+  // render phase, pure - no side effects
+  const processed = data.map((item) => process(item)); // pure computation
+
+  return (
+    <div>
+      {processed.map((item) => (
+        <p key={item.id}>{item.value}</p>
+      ))}
+    </div>
+  );
+}
+
+// No DOM mutations
+function Component() {
+  document.title = "Hello"; // directly changing the DOM
+  someDiv.style.color = "red"; // modifying a real element
+}
+
+// No subscriptions
+function Component() {
+  window.addEventListener("resize", handleResize); // subscribing to an event
+  websocket.onmessage = handleMessage; // subscribing to a websocket
+}
+
+// No side effects
+function Component() {
+  fetch("/api/data"); // side effect - making a network request
+  localStorage.setItem("key", "value"); // side effect - modifying storage
+  someGlobalVariable = 42; // side effect - modifying global state
+}
+```
+
+A component re-renders when:
+
+- It's state changes (setState / useState)
+- It's parent re-renders (even if props haven't changed)
+- A context it consumes changes (useContext)
+- A custom hook it uses triggers a state change
+
+> Parent re-renders cascade - this is what causes most performance issues
+
+```jsx
+function Parent() {
+  const [count, setCount] = useState(0);
+  return (
+    <div>
+      <button onClick={() => setCount((c) => c + 1)}>Increment</button>
+      <Child /> {/* re-renders every time Parent re-renders, even if Child has no props */}
+      <ExpensiveChild /> {/* also re-renders every time, causing performance issues */}
+      <AnotherExpensiveChild /> {/* also re-renders every time, causing performance issues */}
+    </div>
+  );
+}
+```

@@ -1,0 +1,87 @@
+---
+title: Context
+description: Understanding Context in React
+order: 5
+---
+
+> !! Context is not needed after React 19, see `use` hook for more details. This page is still useful for understanding the concept of context.
+
+## Context
+
+> Context provides a way to pass data through the component tree without having to pass props down manually at every level, but also is a common source of bugs and performance issues if not used carefully.
+
+Any context change re-renders all components that consume that context, even if they only use a small part of the context value.
+
+Context bypasses memo. So even if a component is wrapped in `React.memo`, it will still re-render whenever the context value changes.
+
+### Option 1: Split contexts by rate of change
+
+```jsx
+const UserContext = createContext(...);
+const ThemeContext = createContext(...);
+const SettingsContext = createContext(...);
+```
+
+### Option 2: Memoizing relevant context value
+
+```jsx
+const UserContext = createContext(...);
+
+function ThemeProvider({ children }) {
+  const [theme, setTheme] = useState("light");
+  const value = useMemo(() => ({ theme, setTheme }), [theme]); // only changes when 'theme' changes
+
+  return <ThemeContext.Provider value={value}>
+    {children}
+  </ThemeContext.Provider>;
+}
+```
+
+### Option 3: Separate state from dispatch
+
+```jsx
+// state changes frequently, dispatch is stable
+const StateContext = createContext(...);
+const DispatchContext = createContext(...);
+
+function TodoProvider({ children }) {
+  const [todos, setTodos] = useState([]);
+  const addTodo = (todo) => setTodos((t) => [...t, todo]);
+
+  return (
+    <StateContext.Provider value={todos}>
+      <DispatchContext.Provider value={addTodo}>
+        {children}
+      </DispatchContext.Provider>
+    </StateContext.Provider>
+  );
+}
+
+// components that only add todos don't re-render when todos change, and components that only read todos don't re-render when addTodo changes
+function AddTodo() {
+  const addTodo = useContext(DispatchContext);
+  // doesn't re-render when todos change
+}
+
+// components that display todos re-render when todos change, but not when addTodo changes
+function TodoList() {
+  const todos = useContext(StateContext);
+}
+```
+
+### Option 4: Selector pattern (Zustand / Redux)
+
+> Only re-render when the selected part of the context value changes
+
+```jsx
+import { create } from "zustand";
+
+const useStore = create((set) => ({
+  todos: [],
+  addTodo: (todo) => set((state) => ({ todos: [...state.todos, todo] })),
+}));
+
+function TodoList() {
+  const todos = useStore((state) => state.todos); // only re-renders when 'todos' changes
+}
+```
