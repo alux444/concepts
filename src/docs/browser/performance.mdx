@@ -1,0 +1,49 @@
+---
+title: Performance
+description: Understanding performance in browsers
+order: 6
+---
+
+## Performance checklist
+
+When a page is slow, check these in order:
+
+1. Network: Check if resources are large or slow to load (images, scripts, etc.)
+
+- use `<link rel="preload">` for critical resources
+- use `link rel="preconnect">` for third-party domains
+- compress everything (gzip, brotli)
+- cache with proper headers (Cache-Control, ETag)
+
+2. Parsing: Is JS / CSS blocking rendering?
+
+- CSS in `<head>` is render-blocking
+- JS with defer / async
+- Code splitting
+
+3. Javascript execution
+
+- check with Performance tab in DevTools
+- break long tasks into smaller chunks
+- use Web Workers for heavy computations
+- debounce / throttle event handlers
+
+4. DOM
+
+- batch DOM reads / writes
+- use `requestAnimationFrame` for visual updates
+- use DocumentFragment for multiple DOM insertions
+- avoid layout thrashing
+
+5. Rendering
+
+- animate only transform and opacity
+- use `will-change` for elements that will be animated
+
+## DevTools
+
+- Performance tab -> record -> yellow bars (JS) and purple bars (rendering)
+- Rendering tab -> Paint flashing (check repaints)
+- Rendering tab -> Layout shift regions (check CLS)
+- Layers tab -> check compositing layers and GPU usage
+- Network tab -> check resource sizes and load times

@@ -1,0 +1,123 @@
+---
+title: Reflow vs Repaint
+description: Understanding reflow and repaint in browsers
+order: 2
+---
+
+Reflow (layout) - recalculating geometry. This is expensive.
+
+This can be triggered by:
+
+```javascript
+element.style.width = "100px"; // geometry changes
+element.style.padding = "10px"; // geometry changes
+element.style.display = "none"; // geometry changes
+element.style.fontSize = "20px"; // text reflow
+element.style.position = "absolute"; // layout changes
+element.className = "new-class"; // can change anything
+
+element.offsetHeight; // need to compute layout to return this
+element.getBoundingClientRect(); // need to compute layout to return this
+window.getComputedStyle(element); // forces style recalculation which can trigger reflow (resolves final values of css, e.g width)
+element.scrollTop; // need to compute layout to return this
+```
+
+Repaint - filling in pixels without layout change. Cheaper than reflow, but still costly.
+
+This can be triggered by:
+
+```javascript
+element.style.color = "red";
+element.style.backgroundColor = "blue";
+element.style.visibility = "hidden"; // doesn't trigger reflow, but still repaints
+element.style.opacity = "0"; // doesn't trigger reflow, but still repaints
+```
+
+Composites - GPU-accelerated, only for transforms and opacity changes. Fastest.
+
+This is why CSS using transform / opacity are the smoothest.
+
+```javascript
+element.style.transform = "translateX(100px)";
+element.style.opacity = "0.5";
+```
+
+## Performance traps
+
+Batching reads and writes
+
+```javascript
+// Bad: layout thrashing - read/write/read/write pattern causes multiple reflows
+const elements = document.querySelectorAll(".item");
+elements.forEach((el) => {
+  const height = el.offsetHeight; // read - triggers reflow
+  el.style.height = height + 10 + "px"; // write - triggers another reflow
+});
+
+// Good: batch reads and writes separately to minimize reflows
+const heights = [];
+elements.forEach((el) => {
+  heights.push(el.offsetHeight); // batch reads together
+});
+elements.forEach((el, i) => {
+  el.style.height = heights[i] + 10 + "px"; // batch writes together
+});
+
+// Better: use requestAnimationFrame to schedule updates in the next frame, allowing the browser to optimize
+elements.forEach((el) => {
+  const height = el.offsetHeight; // read
+  requestAnimationFrame(() => {
+    el.style.height = height + 10 + "px"; // write in next frame
+  });
+});
+
+// Best: use CSS classes instead of inline style manipulation. Let browser handle
+elements.forEach((el) => {
+  el.classList.add("expanded");
+});
+```
+
+Avoid triggering reflow in a loop by using DocumentFragment for batch DOM updates
+
+```javascript
+// Bad: appendChild in a loop causes multiple reflows
+for (let i = 0; i < 1000; i++) {
+  const item = document.createElement("li");
+  item.textContent = `Item ${i}`;
+  document.querySelector("#list").appendChild(item); // triggers reflow on each append
+}
+
+// Good: build offscreen, insert once
+const fragment = document.createDocumentFragment();
+for (let i = 0; i < 1000; i++) {
+  const item = document.createElement("li");
+  item.textContent = `Item ${i}`;
+  fragment.appendChild(item); // no reflow yet
+}
+document.querySelector("#list").appendChild(fragment); // single reflow for entire batch
+```
+
+Hide, mutate and show for complex DOM changes
+
+```javascript
+element.style.display = "none"; // one reflow - removes from render tree
+// ...make 50 style changes that would each trigger a reflow if done while visible...
+element.style.display = "block"; // one reflow - adds back to render tree with all changes applied
+// we save 48 reflows by batching changes while hidden
+```
+
+Use will-change or contain CSS property to hint the browser about upcoming changes, allowing it to optimize rendering and avoid unnecessary reflows.
+
+```css
+.animated-element {
+  will-change: transform, opacity; /* hint that these properties will change */
+  /* this makes the browser create a separate compositing layer */
+  /* the transform and opacity changes now skip layout and paint */
+  /* WARNING: each layer uses GPU memory*/
+}
+
+.card {
+  contain: layout; /* this element and its children are independent of the rest of the page for layout */
+  /* changes inside this card won't trigger reflow on the rest of the page */
+}
+```

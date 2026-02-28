@@ -1,0 +1,100 @@
+---
+title: HTTP
+description: Understanding HTTP in browsers
+order: 4
+---
+
+## HTTP
+
+- HTTP methods - semantics matter for caching and behavior
+- GET: read data, cacheable, no body, idempotent
+- POST: create data, not cacheable, has body, not idempotent
+- PUT: replace entirely, idempotent
+- PATCH: partial update, not idempotent
+- DELETE: remove, idempotent
+- OPTIONS: preflight for CORS
+
+## Request Headers
+
+```javascript
+fetch("/api/data", {
+  headers: {
+    "Content-Type": "application/json", // data you're sending
+    Accept: "application/json", // data you want back
+    Authorization: "Bearer <token>", //auth
+    "Cache-Control": "no-cache", //caching
+    "If-None-Match": "abc123", // conditional request
+    "If-Modified-Since": "Wed, 21 Oct 2015 07:28:00 GMT", // conditional request
+  },
+});
+```
+
+## Response Headers
+
+- Cache-Control: max-age=3600 = cache for 1 hour
+- Cache-Control: no-cache = cache, but revalidate every time
+- Cache-Control: no-store = don't cache at all
+- ETag: "abc123" = unique identifier for resource version
+- Set-Cookie: sessionId=xyz; HttpOnly; Secure; SameSite=Strict = set cookie with security flags
+- Access-Control-Allow-Origin: \* = CORS header to allow cross-origin requests
+- Content-Encoding: gzip = response is compressed with gzip
+- X-RateLimit-Remaining: 10 = custom header to indicate remaining API quota
+
+## Caching
+
+Browser cache works in layers. When requesting a resource:
+
+1. Check memory cache (in-memory, current tab - fastest)
+   Literally in RAM, tied to browser process
+   Usually scripts, stylesheets.
+2. Check disk cache (shared across tabs, slower than memory)
+   Written to actual files on hard drive. Survives tab closure and browser restart.
+   Large items like images, fonts.
+3. Check Service Worker cache (if you have one)
+   JavaScript file that can intercept requests and serve custom responses. Can be used for offline support, custom caching strategies, etc.
+4. Make network request (slowest)
+
+## Revalidation
+
+First request, server response:
+
+```javascript
+{
+  ETag: "abc123",
+  Last-Modified: "Wed, 21 Oct 2015 07:28:00 GMT",
+}
+```
+
+Second request (revalidation):
+Browser sends:
+
+```javascript
+{
+  If-None-Match: "abc123",
+  If-Modified-Since: "Wed, 21 Oct 2015 07:28:00 GMT",
+}
+```
+
+Server checks has resource changed?
+No -> 304 Not Modified (tells browser to use cached version)
+Yes -> 200 OK with new resource and new ETag/Last-Modified
+
+## Modern app caching example
+
+- `index.html` -> `Cache-Control: no-cache` (always revalidate)
+- `app.a1234.js` -> `Cache-Control: max-age=31536000`, immutable (cache for 1 year, never revalidate)
+- `style.b5678.css` -> `Cache-Control: max-age=31536000`, immutable (cache for 1 year, never revalidate)
+- `/api/data` -> `Cache-Control: private, max-age=60` (cache for 1 minute, then revalidate. private = only browser can cache)
+
+HTML always revalidates, so users get new JS/CSS filenames. JS/CSS cached forever because of hash changes
+
+STALE-WHILE-REVALIDATE: serve stale cached version immediately, but trigger background revalidation to update cache for next request. Good for non-critical resources where you prefer fast response over freshness.
+
+`Cache-Control: max-age=60, stale-while-revalidate=3600`
+
+0-60s: serve from cache (fresh)
+60s-1hr: serve stale cache immediately, trigger background revalidation
+
+\>1hr: cache expired, must revalidate before serving
+
+Results in user almost never waiting for network response, while still keeping cache reasonably fresh.

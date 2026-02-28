@@ -1,0 +1,122 @@
+---
+title: DOM
+description: Understanding the DOM in browsers
+order: 3
+---
+
+## DOM
+
+The DOM is a tree of C++ objects exposed to JS through bindings.
+The bridge between JS and the DOM is the slow part that causes performance issues.
+
+Every time a DOM property is accessed from JS, we cross the JS engine -> rendering engine boundary, which has expensive overhead.
+
+```javascript
+// Bad: crossing bridge 1000 times
+for (let i = 0; i < 1000; i++) {
+  document.getElementById("output").innerHTML += `<p>Item ${i}</p>`; // each access to innerHTML crosses the bridge
+
+  // In each iteration:
+  // 1. JS -> DOM bridge - find element
+  // 2. JS -> DOM bridge - read innerHTML
+  // 3. String concatenation in JS
+  // 4. JS -> DOM bridge - set innerHTML (parses ALL HTML again)
+  // 5. Browser rebuilds entire subtree
+}
+
+// Good: minimize bridge crossings
+const output = document.getElementById("output"); // single bridge crossing to get element
+const html = [];
+for (let i = 0; i < 1000; i++) {
+  html.push(`<p>Item ${i}</p>`); // build HTML string in JS
+}
+output.innerHTML += html.join(""); // single bridge crossing to set HTML, only parses once
+
+// Best: avoid innerHTML parsing entirely
+const output = document.getElementById("output");
+const fragment = document.createDocumentFragment();
+for (let i = 0; i < 1000; i++) {
+  const p = document.createElement("p");
+  p.textContent = `Item ${i}`; // set text content. faster than innerHTML for plain text
+  fragment.appendChild(p); // build offscreen
+}
+output.appendChild(fragment); // single bridge crossing, no HTML parsing, only one reflow
+```
+
+## DOM tree structure internals
+
+All DOM nodes have specific relationships
+
+```javascript
+const element = document.getElementById("myElement");
+
+element.parentNode; // parent
+element.parentElement; // parent (null if parent is not an element, e.g. document)
+element.childNodes; // all children including text / comment nodes
+element.children; // only element children
+element.firstChild; // first child (might be a text node - whitespace counts)
+element.firstElementChild; // first element child (ignores text nodes)
+element.nextSibling; // next sibling (might be a text node)
+element.nextElementSibling; // next element sibling (ignores text nodes)
+```
+
+Whitespace text nodes example
+
+```javascript
+<div>
+   <span>hello</span>
+</div>
+
+div.childNodes = [TextNode("\n  "), <span>, TextNode("\n")];
+div.children = [<span>];
+```
+
+## Static vs live collections
+
+```javascript
+// static NodeList - never changes after grabbing
+const nodeList = document.querySelectorAll(".item");
+
+// live HTMLCollection - reference, updates whenever DOM changes
+const collection = document.getElementsByClassName("item");
+
+// neither are real arrays, need to convert to iterate with array methods
+const arr = [...nodeList]; // or Array.from(nodeList)
+arr.filter((el) => el.textContent.includes("foo"));
+```
+
+## DOM APIs
+
+```javascript
+element.closest(selector); // finds nearest ancestor matching selector, including itself
+element.matches(selector); // checks if element matches selector
+element.contains(otherElement); // checks if otherElement is a descendant of element
+
+element.insertAdjacentHTML("beforebegin", html); // before element
+element.insertAdjacentHTML("afterbegin", html); // first child
+element.insertAdjacentHTML("beforeend", html); // last child
+element.insertAdjacentHTML("afterend", html); // after element
+
+element.replaceWith(newElement); // replaces element with newElement
+element.remove(); // removes element from DOM
+
+// MutationObserver - async API to watch for DOM changes
+const observer = new MutationObserver((mutations) => {
+  mutations.forEach((mutation) => {
+    if (mutation.type === "childList") {
+      console.log("Child nodes changed:", mutation.addedNodes, mutation.removedNodes);
+    }
+    if (mutation.type === "attributes") {
+      console.log("Attribute changed:", mutation.attributeName);
+    }
+  });
+});
+
+observer.observe(document.getElementById("myElement"), {
+  childList: true, // watch for added/removed child nodes
+  attributes: true, // watch for attribute changes
+  subtree: true, // watch entire subtree
+  characterData: true, // watch for text node changes
+});
+observer.disconnect(); // stop observing
+```
