@@ -1,0 +1,100 @@
+---
+title: Cookies and Storage
+description: Understanding cookies and storage in browsers
+order: 6
+---
+
+## Storage
+
+There are three client side storage mechanisms in browsers
+
+### localStorage
+
+- Persistent (survives browset close)
+- ~5MB
+- Synchronous API (can block main thread)
+- String key-value pairs only (need to serialize objects)
+
+```javascript
+localStorage.setItem("theme", "dark");
+localStorage.getItem("theme"); // "dark"
+localStorage.removeItem("theme");
+localStorage.clear(); // clear all
+
+// serialize objects
+const user = { name: "Alice", age: 30 };
+localStorage.setItem("user", JSON.stringify(user));
+
+// since it is synchronous, avoid doing heavy operations or large data storage with localStorage to prevent blocking the UI
+// shared across all tabs from the same origin, so can be used for simple cross-tab communication by listening to 'storage' events
+// no expiration, data persists until explicitly removed
+// !! can be read by any JS on the same origin (XSS risk)
+
+// listening for changes from other tabs
+window.addEventListener("storage", (event) => {
+  if (event.key === "theme") {
+    console.log("Theme changed to", event.newValue);
+  }
+});
+```
+
+### sessionStorage
+
+- same API as local storage
+- but scoped to single tab, cleared on tab close
+- not shared across tabs
+- survives page reloads, but not closing the tab
+- main use: form drafts, wizard progress
+
+```javascript
+sessionStorage.setItem("draft", "my unsaved form data");
+sessionStorage.getItem("draft"); // "my unsaved form data"
+sessionStorage.removeItem("draft");
+```
+
+### Cookies
+
+- sent with every HTTP request to the matching domain
+- localStorage and sessionStorage are JS only
+
+```javascript
+document.cookie = "theme=dark; max-age=3600; path=/; secure; SameSite=strict";
+
+// reading cookies - you get one big string
+function getCookie(name) {
+  const cookies = document.cookie.split("; ");
+  const cookie = cookies.find((c) => c.startsWith(name + "="));
+  return cookie ? decodeURIComponent(cookie.split("=")[1]) : null;
+}
+```
+
+Cookie attributes:
+
+- `HttpOnly` - JS cannot read this cookie, set by server only (XSS protection)
+- `Secure` - only sent over HTTPS
+- `SameSite` - controls cross-site sending (Strict, Lax, None)
+  - `Lax` - default, sent on same-site and top-level navigation GET requests
+  - `Strict` - only sent on same-site requests, not even top-level navigation
+  - `None` - sent on all requests, but must be `Secure`
+- `Domain` - controls which subdomains can access the cookie
+  - `Set-Cookie: theme=dark; Domain=example.com` - sent to example.com and all its subdomains (e.g. www.example.com, app.example.com) but not to other domains
+- `Path` - controls which paths can access the cookie
+  - `Set-Cookie: theme=dark; Path=/app` - only sent for requests to /app and its subpaths
+- `Max-Age` / `Expires` - controls cookie expiration
+  - `Max-Age=3600` - expires in 1 hour
+  - `Expires=Wed, 21 Oct 2025 07:28:00 GMT` - expires at specific date/time
+  - if neither is set, cookie is a session cookie and expires when the browser is closed
+
+## Security
+
+Option 1: HttpOnly cookie (recommended)
+
+- Pros: protection against XSS, sent automatically
+- Cons: vulnerable to CSRF (use `SameSite` and CSRF tokens)
+- Example: `Set-Cookie: sessionId=abc123; HttpOnly; Secure; SameSite=Lax`
+
+Option 2: localStorage + Auth header
+
+- Pros: protection against CSRF, works with any API
+- Cons: vulnerable to XSS, requires manual handling in JS
+- Example: `fetch("/api/data", { headers: { Authorization: "Bearer " + localStorage.getItem("token") } })`
