@@ -19,6 +19,7 @@ export interface DocEntry {
 
 export interface DocCategory {
   category: string;
+  order: number;
   items: DocEntry[];
 }
 
@@ -68,19 +69,38 @@ export function getDocBySlug(slug: string): DocEntry | undefined {
   return buildEntries().find((entry) => entry.slug === slug);
 }
 
+function isCategoryIndex(slug: string): boolean {
+  return slug.includes("/") && slug.endsWith("/index");
+}
+
+function buildCategoryOrderMap(entries: DocEntry[]): Map<string, number> {
+  const orderMap = new Map<string, number>();
+  for (const entry of entries) {
+    if (!isCategoryIndex(entry.slug)) continue;
+    const rawCategory = parseCategory(entry.slug);
+    orderMap.set(rawCategory, entry.order);
+  }
+  return orderMap;
+}
+
 export function getNavTree(): DocCategory[] {
   const entries = getAllDocs();
+  const categoryOrderMap = buildCategoryOrderMap(entries);
   const categoryMap = new Map<string, DocEntry[]>();
 
   for (const entry of entries) {
+    if (isCategoryIndex(entry.slug)) continue;
     const rawCategory = parseCategory(entry.slug);
     const existing = categoryMap.get(rawCategory) ?? [];
     existing.push(entry);
     categoryMap.set(rawCategory, existing);
   }
 
-  return Array.from(categoryMap.entries()).map(([raw, items]) => ({
-    category: formatCategory(raw),
-    items,
-  }));
+  return Array.from(categoryMap.entries())
+    .map(([raw, items]) => ({
+      category: formatCategory(raw),
+      order: categoryOrderMap.get(raw) ?? 999,
+      items,
+    }))
+    .sort((a, b) => a.order - b.order || a.category.localeCompare(b.category));
 }

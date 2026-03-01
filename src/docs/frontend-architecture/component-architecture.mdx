@@ -1,0 +1,237 @@
+---
+title: Component Architecture
+description: Frontend component architecture concepts
+order: 1
+---
+
+## Component Responsibility
+
+- Dumb / presentational -> just renders UI off props
+- Smart / container -> manages state, fetches data, orchestrates other components
+- Layout -> controls positioning, spacing, grid
+- Feature -> encapsulates a specific feature, composed of multiple components
+- Page -> assembles features for a route
+
+### Presentational Components
+
+```jsx
+function Button({ variant = "primary", size = "medium", children, ...props }) {
+  return (
+    <button className={`btn btn-${variant} btn-${size}`} {...props}>
+      {children}
+    </button>
+  );
+}
+
+function DataTable({ columns, rows, onSort, sortColumn, sortDirection }) {
+  return (
+    <table className="data-table">
+      <thead>
+        <tr>
+          {columns.map((col) => (
+            <th key={col.key} onClick={() => onSort(col.key)}>
+              {col.label}
+              {sortColumn === col.key && (sortDirection === "asc" ? " 🔼" : " 🔽")}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row) => (
+          <tr key={row.id}>
+            {columns.map((col) => (
+              <td key={col.key}>{row[col.key]}</td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+```
+
+### Container Components
+
+```jsx
+function UserTableContainer() {
+  const [sortColumn, setSortColumn] = useState("name");
+  const [sortDirection, setSortDirection] = useState("asc");
+
+  const { data: users, isLoading } = useUsers({ sortColumn, sortDirection });
+
+  const columns = [
+    { key: "name", label: "Name" },
+    { key: "email", label: "Email" },
+    { key: "role", label: "Role" },
+  ];
+
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
+  if (isLoading) return <div>Loading...</div>;
+
+  return <DataTable columns={columns} rows={users} onSort={handleSort} sortColumn={sortColumn} sortDirection={sortDirection} />;
+}
+```
+
+### Layout Components
+
+```jsx
+function PageLayout({ header, sidebar, content }) {
+  return (
+    <div className="page-layout">
+      <header>{header}</header>
+      <div className="main">
+        <aside>{sidebar}</aside>
+        <section>{content}</section>
+      </div>
+    </div>
+  );
+}
+
+function Stack({ gap = 16, direction = "vertical", children }) {
+  return (
+    <div className={`stack stack-${direction}`} style={{ gap }}>
+      {children}
+    </div>
+  );
+}
+```
+
+### Feature Components
+
+`NotificationCenter` can be used anywhere and it works, no props needed from parent and self contained
+
+```jsx
+function NotificationCenter() {
+  const { data: notifications, markAsRead, clearAll } = useNotifications();
+  const [isOpen, setIsOpen] = useState(false);
+  const unread = notifications.filter((n) => !n.read).length;
+
+  return (
+    <div>
+      <Button variant="secondary" onClick={() => setIsOpen(!isOpen)}>
+        Notifications {unread > 0 && `(${unread})`}
+      </Button>
+      {isOpen && (
+        <Popover onClose={() => setIsOpen(false)}>
+          <NotificationList notifications={notifications} onRead={markAsRead} onClear={clearAll} />
+        </Popover>
+      )}
+    </div>
+  );
+}
+```
+
+### Page Components
+
+```jsx
+function UserManagementPage() {
+  return (
+    <PageLayout
+      header={<h1>User Management</h1>}
+      sidebar={<UserFilter />}
+      content={
+        <Stack gap={24}>
+          <UserTableContainer />
+          <Pagination />
+        </Stack>
+      }
+    />
+  );
+}
+```
+
+## Headless Components
+
+> Separating logic from UI. Headless components provide state and behavior but no markup, allowing you to build your own UI on top.
+
+```jsx
+function useToggle(initial = false) {
+  const [isOpen, setIsOpen] = useState(initial);
+  const toggle = useCallback(() => setIsOpen((open) => !open), []);
+  const open = useCallback(() => setIsOpen(true), []);
+  const close = useCallback(() => setIsOpen(false), []);
+
+  return { isOpen, toggle, open, close };
+}
+
+function useDropdown(items, { getItemId = (item) => item?.id } = {}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedItemId, setSelectedItemId] = useState(null);
+
+  const getToggleProps = () => ({
+    onClick: () => setIsOpen((open) => !open),
+    "aria-haspopup": "listbox",
+    "aria-expanded": isOpen,
+  });
+
+  const getMenuProps = () => ({
+    role: "listbox",
+    "aria-activedescendant": selectedIndex !== null ? `dropdown-item-${selectedIndex}` : undefined,
+  });
+
+  const selectedItem = selectedItemId !== null ? (items.find((item) => getItemId(item) === selectedItemId) ?? null) : null;
+
+  const getItemProps = (item) => {
+    const id = getItemId(item);
+    const isSelected = selectedItemId === id;
+
+    return {
+      id: `dropdown-item-${id}`,
+      role: "option",
+      "aria-selected": isSelected,
+      onClick: () => {
+        setSelectedItemId(id);
+        setIsOpen(false);
+      },
+    };
+  };
+
+  return { isOpen, selectedItem, getToggleProps, getMenuProps, getItemProps };
+}
+
+function CustomDropdown({ items, placeholder }) {
+  const { isOpen, selectedItem, getToggleProps, getMenuProps, getItemProps } = useDropdown(items);
+
+  return (
+    <div className="dropdown">
+      <button {...getToggleProps()}>{selectedItem ? selectedItem.label : placeholder}</button>
+      {isOpen && (
+        <ul {...getMenuProps()} className="dropdown-menu">
+          {items.map((item) => (
+            <li key={item.value} {...getItemProps(item)} className="dropdown-item">
+              {item.label}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function MobileDropdown({ items, placeholder }) {
+  const { isOpen, selectedItem, getToggleProps, getMenuProps, getItemProps } = useDropdown(items);
+
+  return (
+    <div className="mobile-dropdown">
+      <button {...getToggleProps()}>{selectedItem ? selectedItem.label : placeholder}</button>
+      {isOpen && (
+        <div {...getMenuProps()} className="mobile-dropdown-menu">
+          {items.map((item) => (
+            <div key={item.value} {...getItemProps(item)} className="mobile-dropdown-item">
+              {item.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+```

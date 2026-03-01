@@ -1,0 +1,119 @@
+---
+title: Dependency Boundaries
+description: Rules about how different parts of the system can depend on each other.
+order: 3
+---
+
+## Rule 1: Features can import from shared, but not the other way around
+
+- `features/dashboard` -> `shared/components` OK
+- `features/dashboard` -> `features/profile` NOT OK
+
+If two features need to communicate, have to lift the shared part
+
+1. Move shared code to `/shared`
+2. Use events / context / store for communication
+3. Make a parent component that connects the two features
+
+## Rule 2: Shared cannot import from features
+
+- `shared/components` -> `features/dashboard` NOT OK
+
+## Rule 3: Deeper folders can import from parents, not siblings
+
+- `features/dashboard/components` -> `features/dashboard/hooks` OK
+- `features/dashboard/components` -> `features/profile/hooks` NOT OK
+
+## Rule 4: No circular dependencies
+
+Have a dependency direction, e.g
+
+- Paged -> Features -> Shared -> Utils / Config
+
+## ESLint
+
+> We can use ESLint to enforce these rules by defining custom import rules based on file paths.
+
+```js
+// .eslintrc.js
+// using eslint-plugin-import and eslint-plugin-boundaries
+module.exports = {
+  rules: {
+    "import/no-restricted-paths": [
+      "error",
+      {
+        zones: [
+          // shared cannot import from features
+          {
+            target: "./src/shared",
+            from: "./src/features",
+            message: "Shared modules cannot import from features",
+          },
+          // features cannot import from other features
+          {
+            target: "./src/features/auth",
+            from: "./src/features/dashboard",
+            message: "Features should not directly import from other features",
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
+## What if features DO need to communicate?
+
+### Shared store - Redux, Zustand, Jotai
+
+> Both features read / write to a shared slice
+
+```js
+const useStore = create((set) => ({
+  currentUser: null, // auth writes to this
+  dashboardFilter: "all", // dashboard writes to this and reads currentUser
+}));
+```
+
+### Events
+
+> Use an event so other features can listen without direct imports
+
+```js
+// features/auth/hooks/useAuth.js
+function useAuth() {
+  const login = async (credentials) => {
+    const user = await authApi.login(credentials);
+    window.dispatchEvent(new CustomEvent("user:login", { detail: user }));
+    return user;
+  };
+}
+
+// features/analytics/hooks/useAnalytics.js
+function useAnalytics() {
+  useEffect(() => {
+    const handler = (e) => trackEvent("user_login", { user: e.detail });
+    window.addEventListener("user:login", handler);
+    return () => window.removeEventListener("user:login", handler);
+  }, []);
+}
+```
+
+### Parent component
+
+> Compose features together at a higher level, e.g page
+
+```jsx
+function DashboardPage() {
+  const { user } = useAuth(); // auth feature
+  const filters = useDashboardFilters(); // dashboard feature
+
+  return (
+    <PageLayout>
+      <DashboardHeader user={user} />
+      <DashboardFilters filters={filters} />
+      <DashboardContent filters={filters} />
+    </PageLayout>
+  );
+}
+```

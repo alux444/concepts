@@ -1,0 +1,64 @@
+---
+title: Design Systems
+description: Shared libraries of components for visual consistency and reusability.
+order: 5
+---
+
+## Design Tokens
+
+> Primitive design values for everything
+
+Example token values
+
+```js
+export const tokens = {
+  color: {
+    primary: "#0070f3",
+    secondary: "#1c1c1e",
+    background: "#ffffff",
+    text: "#000000",
+  },
+  spacing: {
+    small: "8px",
+    medium: "16px",
+    large: "24px",
+  },
+  typography: {
+    fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+    fontSize: "16px",
+    lineHeight: "1.5",
+  },
+};
+```
+
+Custom CSS properties (CSS variables)
+
+```css
+// themes/light.css
+:root {
+  --color-primary: #0070f3;
+  --color-secondary: #1c1c1e;
+  --color-background: #ffffff;
+  --color-text: #000000;
+  --spacing-small: 8px;
+  --spacing-medium: 16px;
+  --spacing-large: 24px;
+  --font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-size: 16px;
+  --line-height: 1.5;
+}
+
+// themes/dark.css
+[data-theme="dark"] {
+  --color-primary: #0a84ff;
+  --color-secondary: #f5f5f7;
+  --color-background: #000000;
+  --color-text: #ffffff;
+}
+
+// To switch theme:
+// document.documentElement.setAttribute("data-theme", "dark");
+```
+
+- Good component APIs should be consistent, composable and constrained by design tokens
+- Avoid ad-hoc styles and magic values in components, use finite set of tokens instead
