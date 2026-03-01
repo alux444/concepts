@@ -1,0 +1,117 @@
+---
+title: Folder Architecture
+description: Frontend folder architecture concepts
+order: 2
+---
+
+## Feature based folder architecture (recommended for scale)
+
+> Group files by feature / domain
+
+Why?
+
+- Locality - everything to work in `auth` feature is in one place
+- Deletion - easy to remove a feature by deleting one folder
+- Ownership - clear ownership of features by teams
+- Dependencies are visible - easy to see if `auth` depends on `dashboard` by looking at imports in `auth/index.js`
+
+```
+src/
+├── features/
+│   ├── auth/
+│   │   ├── components/
+│   │   │   ├── LoginForm.jsx
+│   │   ├── hooks/
+│   │   │   ├── useAuth.js
+│   │   │   └── useSession.js
+│   │   ├── api/
+│   │   │   └── authApi.js
+│   │   ├── utils/
+│   │   │   └── tokenStorage.js
+│   │   └── index.js
+│   │
+│   ├── dashboard/
+│   │   ├── components/
+│   │   │   ├── Dashboard.jsx
+│   │   │   ├── StatsCard.jsx
+│   │   ├── hooks/
+│   │   │   └── useDashboardData.js
+│   │   ├── api/
+│   │   │   └── dashboardApi.js
+│   │   ├── utils/
+│   │   │   └── dashboardUtils.js
+│   │
+│   └── users/
+│       ├── components/
+│       ├── hooks/
+│       ├── api/
+│       └── index.js
+│
+├── shared/
+│   ├── components/
+│   │   ├── Button.jsx
+│   │   ├── Modal.jsx
+│   │   └── DataTable.jsx
+│   ├── hooks/
+│   │   ├── useDebounce.js
+│   │   └── useLocalStorage.js
+│   ├── utils/
+│   │   ├── formatDate.js
+│   │   └── cn.js
+│   └── layouts/
+│       ├── PageLayout.jsx
+│       └── AuthLayout.jsx
+│
+├── app/
+│   ├── App.jsx
+│   ├── routes.jsx
+│   └── providers.jsx
+│
+└── config/
+    └── constants.js
+```
+
+```js
+// example index.js for a feature
+export { UserList } from "./components/UserList";
+export { UserProfile } from "./components/UserProfile";
+export { useUser } from "./hooks/useUser";
+```
+
+## Layer based folder architecture
+
+> Group files by layer / responsibility (smaller scale apps)
+
+```
+src/
+├── components/
+│   ├── common/
+│   │   ├── Button.jsx
+│   │   └── Modal.jsx
+│   ├── auth/
+│   │   ├── LoginForm.jsx
+│   │   └── SignupForm.jsx
+│   └── dashboard/
+│       ├── StatsGrid.jsx
+│       └── RevenueChart.jsx
+│
+├── hooks/
+│   ├── useAuth.js
+│   ├── useDebounce.js
+│   └── useDashboardData.js
+│
+├── api/
+│   ├── authApi.js
+│   └── dashboardApi.js
+│
+├── utils/
+│   ├── formatDate.js
+│   └── validation.js
+│
+├── pages/
+│   ├── LoginPage.jsx
+│   ├── DashboardPage.jsx
+│   └── SettingsPage.jsx
+│
+└── App.jsx
+```

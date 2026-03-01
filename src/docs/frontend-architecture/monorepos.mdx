@@ -1,0 +1,94 @@
+---
+title: Monorepos
+description: Using monorepos
+order: 4
+---
+
+## Why monorepos?
+
+- Share code between apps
+- Atomic changes - update Button + all apps that use it together
+- Consistent tooling - single ESLint config, TypeScript config, etc.
+- Easier dependency management - single version of React, etc.
+- Better visibility - see all code in one place
+- Simplified CI/CD - one pipeline for all apps
+- Easier onboarding - new developers can see all code and how it fits together
+
+## Why not?
+
+- Independent versioning - harder to release packages independently
+- Separate teams with no shared code
+
+```
+my-company/
+├── apps/
+│   ├── web/               ← main web app
+│   │   ├── package.json
+│   │   └── src/
+│   ├── mobile/            ← React Native app
+│   │   ├── package.json
+│   │   └── src/
+│   ├── admin/             ← internal admin dashboard
+│   │   ├── package.json
+│   │   └── src/
+│   └── docs/              ← documentation site
+│       ├── package.json
+│       └── src/
+│
+├── packages/
+│   ├── ui/                ← shared component library (design system)
+│   │   ├── package.json
+│   │   ├── src/
+│   │   │   ├── Button.jsx
+│   │   │   ├── Modal.jsx
+│   │   │   └── index.js
+│   │   └── tsconfig.json
+│   ├── utils/             ← shared utility functions
+│   │   ├── package.json
+│   │   └── src/
+│   ├── api-client/        ← shared API client
+│   │   ├── package.json
+│   │   └── src/
+│   └── config/            ← shared ESLint, TypeScript, etc.
+│       ├── eslint/
+│       └── tsconfig/
+│
+├── package.json           ← root workspace config
+├── turbo.json             ← Turborepo config (or nx.json for Nx)
+└── pnpm-workspace.yaml    ← workspace definition
+```
+
+## Monorepo tools
+
+### Turborepo
+
+> Build system for JavaScript and TypeScript monorepos
+
+- Incremental builds - only rebuild what changed
+- Remote caching - share build cache across team
+- Parallel execution - run tasks in parallel across packages
+
+Example `turbo.json`:
+
+```json
+{
+  "pipeline": {
+    "build": {
+      "dependsOn": ["^build"], // build dependencies first
+      "outputs": ["dist/**"]
+    },
+    "lint": {
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "outputs": []
+    },
+    "dev": {
+      "dependsOn": ["build"],
+      "cache": false,
+      "persistent": true
+    }
+  }
+}
+```
