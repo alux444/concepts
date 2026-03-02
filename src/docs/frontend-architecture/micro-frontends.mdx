@@ -1,0 +1,120 @@
+---
+title: Micro Frontends
+description: Understanding micro frontends architecture
+order: 7
+---
+
+> Similar to microservices. Instead of one large app, have multiple independently developed, deployed and owned frontend applications that plug into one cohesive product.
+
+## Pros and Cons
+
+### Pros
+
+- Independent development and deployment
+- Independent ownership
+- Technology agnostic (can use different frameworks for different micro frontends)
+- Better scalability (can scale individual micro frontends independently)
+- Better maintainability (can update individual micro frontends without affecting the entire application)
+- Better user experience (can load micro frontends on demand)
+- Better team autonomy (teams can work on their own micro frontends without coordinating with other teams)
+- Better fault isolation (if one micro frontend fails, it doesn't bring down the entire application)
+- Better code organization (can organize code by feature rather than by technical layer)
+
+### Cons
+
+- Increased complexity (more moving parts to manage)
+- Increased latency (multiple micro frontends may need to be loaded)
+- Increased testing complexity (need to test interactions between micro frontends)
+- Increased deployment complexity (need to coordinate deployments of multiple micro frontends)
+- Increased communication complexity (need to coordinate between teams working on different micro frontends)
+- Increased SEO challenges (multiple micro frontends may need to be indexed by search engines)
+- Increased user experience challenges (need to ensure consistent user experience across multiple micro frontends)
+
+## Core Approaches
+
+> **Build-time integration** - each micro frontend is published as an npm package and the shell app imports them as dependencies. This is the simplest, but somewhat defeats the purpose, as whenever you update a micro frontend, you need to publish a new version and update the shell app to use it.
+
+> **Run-time integration** - each micro frontend runs in its own iframe. This has strong isolation and works with any framework, but is terrible for UX. Shared states, routing and styling across iframes is very difficult.
+
+> **Run-time integration via Module Federation** - modern standard approach. Webpack 5. Each app exposes components or modules that other apps can consume at runtime from a remote URL, without rebuilding or redeploying anything else
+
+## Module Federation
+
+> Each micro-frontend has two roles: it can be a host (consumes others) or a remote (exposes itself) but often both.
+
+Webpack config of a remote
+
+```js
+// teams-app/webpack.config.js
+const { ModuleFederationPlugin } = require("webpack").container;
+
+module.exports = {
+  // ...
+  plugins: [
+    new ModuleFederationPlugin({
+      name: "teams_app",
+      filename: "remoteEntry.js", // manifest file other apps load
+      exposes: {
+        "./TeamList": "./src/components/TeamsList.jsx", // exposed component
+        "./TeamDetails": "./src/components/TeamDetails.jsx",
+      },
+      shared: [
+        "react": { singleton: true, requiredVersion: "^18.0.0" },
+        "react-dom": { singleton: true, requiredVersion: "^18.0.0" },
+      ],
+    }),
+  ],
+}
+
+// shell-app/webpack.config.js
+const { ModuleFederationPlugin } = require("webpack").container;
+
+module.exports = {
+  // ...
+  plugins: [
+    new ModuleFederationPlugin({
+      name: "shell_app",
+      remotes: {
+        teams_app: "teams_app@http://localhost:3001/remoteEntry.js", // load remote manifest
+      },
+      shared: [
+        "react": { singleton: true, requiredVersion: "^18.0.0" },
+        "react-dom": { singleton: true, requiredVersion: "^18.0.0" },
+      ],
+    }),
+  ],
+}
+
+// shell-app/src/App.jsx
+import React from "react";
+
+const TeamList = React.lazy(() => import("teams_app/TeamList"));
+```
+
+> IMPORTANT: The `shared` config is critical so that every micro-frontend uses the same copy of React, keeping the bundle size small and avoiding hook issues. Using `singleton: true` ensures that only one version of React is loaded, and `requiredVersion` ensures that the versions are compatible.
+
+## Routing
+
+> The shell apps should own the top-level routing, with each micro-frontend handling its own internal routing
+
+```jsx
+// shell-app/src/App.jsx
+<Routes>
+  <Route path="/teams/*" element={<TeamsPage />} />
+  <Route path="/projects/*" element={<ProjectsPage />} />
+</Routes>
+
+// teams-app/src/TeamsPage.jsx
+<Routes>
+  <Route path="/" element={<TeamList />} />
+  <Route path="/:teamId" element={<TeamDetails />} />
+</Routes>
+```
+
+## Communication between micro-frontends
+
+> Micro-frontends can't share React context as separate apps, so there are some common patterns to enable communication
+
+- **Custom events** - simplest approach, micro-frontends can dispatch and listen to custom events
+- **Pub-sub system** - a tiny shared library (federated module) that exposes a Zustand or Jotai store apps can subscribe to
+- **URL as state** - encode shared state in the URL (query params or hash) so micro-frontends can read and update it

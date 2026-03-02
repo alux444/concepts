@@ -1,0 +1,108 @@
+---
+title: Generics
+description: Understanding generics in TypeScript
+order: 1
+---
+
+> Generics allow for the creation of reusable code that can work with different types while still having type safety.
+
+```typescript
+function getFirst<T>(arr: T[]): T {
+  return arr[0];
+}
+
+const num = getFirst([1, 2, 3]); // num is inferred as number
+const str = getFirst(["a", "b", "c"]); // str is inferred as string
+const user = getFirst([{ name: "Alice" }, { name: "Bob" }]); // user is inferred as { name: string }
+```
+
+## Generic constraints
+
+> Sometimes we might want T to be more specific than just any type. We can use `extends` to constrain T to types that have certain properties.
+
+```typescript
+// without constraint
+function findById<T>(users: T[], id: number): T | undefined {
+  return users.find((user) => user.id === id);
+}
+
+// with constraint - T must have an id property
+function findById<T extends { id: number }>(users: T[], id: number): T | undefined {
+  return users.find((user) => user.id === id);
+}
+
+// so now we can only call findById with arrays of objects that have an id property
+const users = [
+  { id: 1, name: "Alice" },
+  { id: 2, name: "Bob" },
+];
+```
+
+## Multiple type parameters
+
+> We can also have multiple type parameters if we need to work with multiple types.
+
+```typescript
+function pick<T, K extends keyof T>(obj: T, keys: K[]): Pick<T, K> {
+  const result = {} as Pick<T, K>;
+  keys.forEach((key) => (result[key] = obj[key]));
+  return result;
+}
+
+// example usage
+const user = { id: 1, name: "Alice", age: 30 };
+const picked = pick(user, ["id", "name"]); // picked is { id: number, name: string }
+```
+
+## Generic interfaces and classes
+
+> Generics can also be used with interfaces and classes to create reusable data structures.
+
+```typescript
+interface ApiResponse<T> {
+  data: T;
+  status: number;
+  error?: string;
+}
+```
+
+## Generic React components
+
+```tsx
+interface SelectProps<T> {
+  options: T[];
+  value: T;
+  onChange: (value: T) => void;
+  getLabel: (option: T) => string;
+  getValue: (option: T) => string;
+}
+
+function Select<T>({ options, value, onChange, getLabel, getValue }: SelectProps<T>) {
+  return (
+    <select
+      value={value ? getValue(value) : ""}
+      onChange={(e) => {
+        const selected = options.find((option) => getValue(option) === e.target.value);
+        if (selected) onChange(selected);
+      }}
+    >
+      <options.map((option) => (
+        <option key={getValue(option)} value={getValue(option)}>
+          {getLabel(option)}
+        </option>
+      ))}
+    </select>
+  );
+}
+```
+
+> We can now use this component with any type of options, as long as we provide the appropriate getLabel and getValue functions.
+
+```tsx
+const users = [
+  { id: 1, name: "Alice" },
+  { id: 2, name: "Bob" },
+];
+
+<Select options={users} value={selectedUser} onChange={setSelectedUser} getLabel={(user) => user.name} getValue={(user) => user.id.toString()} />;
+```

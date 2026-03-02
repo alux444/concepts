@@ -1,0 +1,107 @@
+---
+title: GraphQL II
+description: Understanding GraphQL
+order: 2
+---
+
+## Persisted Queries
+
+> Instead of sending full query strings with every request, send a hash. The server looks up the full query by hash.
+
+- This reduces payload size and improves security (only pre-approved queries can be executed)
+- Also simplifies caching at CDN level since the hash is consistent for the same query.
+
+## Directives
+
+> We can conditionally include or skip fields in a query using directives
+
+```graphql
+query getUser($includePosts: Boolean!) {
+  user(id: "1") {
+    name
+    email @skip(if: $skipEmail)
+    posts @include(if: $includePosts) {
+      title
+    }
+  }
+}
+```
+
+Custom directives can also be written on the server to handle specific logic, such as authentication or formatting.
+
+## Schema Stitching / Federation
+
+> When the backend is made of multiple microservices, we don't want to expose 10 different GraphQL endpoints
+
+- **Schema Stitching**: merges multiple schemas into one at the gateway level
+- **Federation**: is a more modern approach where each service owns its part of the schema and declares how its types relate to others. A gateway composes them into a unified graph.
+
+## Query Complexity and Depth Limiting
+
+> A malicious client could send a deeply nested query that causes the server to do excessive work.
+
+- We can set limits on query depth and complexity to prevent this. For example, we might limit queries to a maximum depth of 5 and a complexity score of 1000.
+
+## Defer and Stream
+
+> `@defer` lets a server send critical data immediately and stream slower parts of the response as they become available (skip slow fields and coming back to them)
+
+```graphql
+query {
+  user(id: "1") {
+    name
+    ... on User @defer {
+      posts {
+        title
+      }
+    }
+  }
+}
+```
+
+> `@stream` allows for streaming lists of items as they are resolved, which is useful for large lists (show list items progressively as they load)
+
+```graphql
+query {
+  user(id: "1") {
+    name
+    posts @stream {
+      title
+    }
+  }
+}
+```
+
+## Cursor-based Pagination
+
+> Offset pagination can break with real-time data. The standard GraphQL solution is cursor-based pagination.
+
+```graphql
+query {
+  posts(first: 10, after: "cursor123") {
+    edges {
+      cursor
+      node {
+        title
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}
+```
+
+Each post has a cursor, and you paginate by passing the last cursor received, which is more stable even if new posts are added or removed.
+
+## Caching
+
+> REST caching is straightforward with HTTP caching headers, but the single endpoint nature of GraphQL makes this more complex
+
+There are multiple approaches to caching in GraphQL:
+
+- Field-level caching in resolvers (e.g., caching user data for 5 minutes using Redis)
+- Persisted query caching at the gateway level
+- CDN caching for persisted queries, since the hash is consistent for the same query
+- Apollo Client's built-in caching on the client side, uses a normalized cache that stores data by type and ID on the client side and deduplicates data across queries.

@@ -1,5 +1,170 @@
 ---
-title: GraphQL
+title: GraphQL I
 description: Understanding GraphQL
 order: 1
 ---
+
+> REST APIs expose multiple endpoints, each returning a fixed data structure. GraphQL APIs expose a single endpoint that can return different data structures based on the query. This means the requestor gets exactly the data they need, and nothing more.
+
+## Pros and Cons
+
+### Pros
+
+- **Flexibility**: Clients can specify exactly what data they need, reducing over-fetching and under-fetching.
+- **Single Endpoint**: Simplifies API design and reduces the number of endpoints to manage.
+- **Strongly Typed**: The schema defines the types of data, which can improve developer experience and catch errors early.
+- **Real-time Data**: Subscriptions allow clients to receive real-time updates from the server.
+- **Ecosystem**: An ecosystem of tools and libraries for various programming languages.
+- **Single round trip for nested data**: The whole nested data can be fetched in a single request (instead of like `/users/1` and then `/users/1/posts` in REST).
+
+### Cons
+
+- **Complexity**: The flexibility can lead to complex queries that are difficult to optimize and debug.
+- **Overhead**: The single endpoint can lead to performance issues if not properly optimized, especially for large queries.
+- **Learning Curve**: Requires learning a new query language and understanding the schema, which can be a barrier for developers familiar with REST.
+- **Caching**: Caching can be more challenging compared to REST, as the response structure can vary widely based on the query.
+
+## Schema
+
+GraphQL starts with a schema in Schema Definition Language (SDL)
+
+```graphql
+type User {
+  id: ID!
+  name: String!
+  email: String!
+  posts: [Post!]!
+}
+
+type Post {
+  id: ID!
+  title: String!
+  content: String!
+}
+```
+
+## Operations
+
+### Queries
+
+> Queries are the standard for reading data (GET request in REST)
+
+This is an example that uses a user's ID to fetch their name and the titles of their posts.
+
+```graphql
+query {
+  user(id: "1") {
+    name
+    posts {
+      title
+    }
+  }
+}
+```
+
+### Mutations
+
+> Mutations are used to modify data (POST/PUT/PATCH/DELETE in REST)
+
+This example creates a new user with a name and email.
+
+```graphql
+mutation {
+  createUser(name: "Alice", email: "alice@example.com") {
+    id
+    name
+    email
+  }
+}
+```
+
+### Subscriptions
+
+> Subscriptions allow clients to receive real-time updates from the server.
+
+This example subscribes to new posts being created.
+
+```graphql
+subscription {
+  postCreated {
+    id
+    title
+    content
+  }
+}
+```
+
+## Resolvers
+
+For every field in the schema, you need to define a resolver function that tells the server how to fetch the data for that field.
+
+When a query is executed, GraphQL walks the query tree and calls each resolver in turn
+
+```javascript
+const resolvers = {
+  Query: {
+    user: (parent, args, context, info) => {
+      // Fetch user by ID from database
+      return db.users.find((user) => user.id === args.id);
+    },
+    // This is the entry point for the `user(id: "1")` query
+    // args contains the arguments passed to the query (in this case, `id: "1"`)
+    // the parent argument is the result of the previous resolver in the chain (as this is the root query, parent will be undefined)
+  },
+  User: {
+    posts: (parent, args, context, info) => {
+      // Fetch posts for the user
+      return db.posts.filter((post) => post.userId === parent.id);
+    },
+    // This is a field level resolver for the `posts` field on the `User` type
+    // parent contains the result of the previous resolver (in this case, the user object returned by the `user` resolver)
+    // args would contain any arguments passed to the `posts` field (if there were any)
+  },
+};
+```
+
+## Request Flow
+
+1. Client sends an HTTP POST to `/graphql` with a JSON body containing the query string and any variables
+2. GraphQL server parses the query into an Abstract Syntax Tree (AST)
+3. It validates the query against the schema to make sure all the requested fields and types are valid
+4. It executes the query by calling the appropriate resolver functions for each field and builds the response object
+5. The server sends the response back to the client as JSON with a `data` key (and optionally an `errors` key if there were any issues during execution)
+
+## N+1 Problem
+
+> If we fetch 10 users and each resolver fetches their posts separately, we make 11 database calls (1 for users and 10 for posts).
+
+One solution is using DataLoader, which batches and caches requests to avoid redundant database calls.
+
+This collects all the IDs requested in a single event loop tick and fires a single batched query instead.
+
+```javascript
+const postLoader = new DataLoader(async (userIds) => {
+  const posts = await db.posts.where("userId").in(userIds);
+  return userIds.map((userId) => posts.filter((post) => post.userId === userId));
+});
+```
+
+Each resolver then calls `postLoader.load(userId)` instead of directly querying the database directly.
+
+## Fragments and Variables
+
+> Fragments allow you to reuse field selections across multiple queries
+
+```graphql
+fragment UserFields on User {
+  id
+  name
+  email
+}
+
+query {
+  user(id: "1") {
+    ...UserFields
+    posts {
+      title
+    }
+  }
+}
+```
