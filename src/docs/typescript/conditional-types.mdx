@@ -1,5 +1,5 @@
 ---
-title: Conditional Types - satisfies, infer
+title: Conditional Types
 description: Understanding conditional types in TypeScript
 order: 4
 ---
@@ -36,6 +36,7 @@ type C = Awaited<string>; // string - not a promise, returns T as is
 
 ```typescript
 type ReturnType<T> = T extends (...args: any[]) => infer R ? R : never;
+// if T is a function type, infer the return type R and return it, otherwise return never
 
 function getUser() {
   return { id: 1, name: "Alice" };
@@ -46,6 +47,7 @@ type User = ReturnType<typeof getUser>; // { id: number; name: string }
 
 ```typescript
 type UnpackArray<T> = T extends (infer U)[] ? U : T;
+// if T is an array type, infer the element type U and return it, otherwise return T as is
 
 type A = UnpackArray<string[]>; // string
 type B = UnpackArray<number>; // number
@@ -55,6 +57,7 @@ type D = UnpackArray<string>; // string - not an array, returns T as is
 
 ```typescript
 type FirstArg<T> = T extends (first: infer F, ...rest: any[]) => any ? F : never;
+// if T is a function type, infer the type of the first argument F and return it, otherwise return never
 
 function createIssue(projectId: string, title: string, priority: number) {}
 
@@ -65,6 +68,7 @@ type First = FirstArg<typeof createIssue>; // string
 
 ```typescript
 type ToArray<T> = T extends any ? T[] : never;
+
 type A = ToArray<string | number>; // string[] | number[]
 type B = ToArray<{ name: string } | { age: number }>; // { name: string }[] | { age: number }[]
 
