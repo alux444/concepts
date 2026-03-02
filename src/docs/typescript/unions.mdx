@@ -1,0 +1,101 @@
+---
+title: Unions
+description: Understanding unions in TypeScript
+order: 3
+---
+
+> Unions help remove impossible combinations of types and can help make APIs easier to use
+
+## Non-union example
+
+```typescript
+interface FetchState {
+  isLoading: boolean;
+  data: User | null;
+  error: Error | null;
+}
+
+// this allows some impossible combinations, e.g
+{ isLoading: true, data: someUser, error: someError }
+{ isLoading: false data: null, error: null }
+```
+
+## Union example
+
+```typescript
+type FetchState<T> = { status: "idle" } | { status: "loading" } | { status: "success"; data: T } | { status: "error"; error: Error };
+```
+
+## Union UI components
+
+```tsx
+type ButtonProps =
+  | { variant: "primary"; onClick: () => void }
+  | { variant: "secondary"; href: string };
+  | { variant: "submit"; onSubmit: () => void };
+
+function Button(props: ButtonProps) {
+  switch (props.variant) {
+    case "primary":
+      return <button onClick={props.onClick}>Primary</button>;
+    case "secondary":
+      return <a href={props.href}>Secondary</a>;
+    case "submit":
+      return <button onClick={props.onSubmit}>Submit</button>;
+  }
+```
+
+## Union API responses
+
+```typescript
+type ApiResponse<T> = { type: "success"; data: T; status: 200 | 201 } | { type: "not-found"; error: string; status: 404 } | { type: "unauthorized"; error: string; status: 401 } | { type: "server-error"; error: string; status: 500 };
+
+async function getUser(id: number): Promise<ApiResponse<User>> {
+  const response = await fetch(`/api/users/${id}`);
+  if (response.ok) return { type: "success", data: await response.json(), status: response.status };
+  if (response.status === 404) return { type: "not-found", error: "User not found", status: 404 };
+  if (response.status === 401) return { type: "unauthorized", error: "Unauthorized", status: 401 };
+  return { type: "server-error", error: "Server error", status: response.status };
+}
+
+// if we make the call, TS will force us to handle all possible cases
+async function handleGetUser(id: number) {
+  const response = await getUser(id);
+  switch (response.type) {
+    case "success":
+      console.log("User data:", response.data);
+      break;
+    case "not-found":
+      console.error("Error:", response.error);
+      break;
+    case "unauthorized":
+      console.error("Error:", response.error);
+      break;
+    case "server-error":
+      console.error("Error:", response.error);
+      break;
+  }
+}
+```
+
+## Unions + Generics
+
+```typescript
+type Result<T, E = Error> = { type: "success"; data: T } | { type: "error"; error: E };
+
+function divide(a: number, b: number): Result<number> {
+  if (b === 0) return { type: "error", error: new Error("Cannot divide by zero") };
+  return { type: "success", data: a / b };
+}
+
+const result = divide(10, 2);
+
+switch (result.type) {
+  case "success":
+    console.log("Result:", result.data);
+    break;
+  case "error":
+    console.error("Error:", result.error.message);
+    break;
+}
+```

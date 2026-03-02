@@ -1,0 +1,112 @@
+---
+title: Conditional Types - satisfies, infer
+description: Understanding conditional types in TypeScript
+order: 4
+---
+
+> TypeScripts version of a ternary operator, but with types
+
+```typescript
+T extends U ? X : Y
+```
+
+if `T` can be assigned to `U`, then the type resolves to `X`, otherwise it resolves to `Y`
+
+## Basic Example
+
+```typescript
+type IsString<T> = T extends string ? "yes" : "no";
+
+type A = IsString<string>; // "yes"
+type B = IsString<number>; // "no"
+type C = IsString<"hello">; // "yes"
+```
+
+## Practical Example
+
+```typescript
+type Awaited<T> = T extends Promise<infer U> ? U : T;
+
+type A = Awaited<Promise<string>>; // string
+type B = Awaited<number>; // number
+type C = Awaited<string>; // string - not a promise, returns T as is
+```
+
+> `infer` allows us to pull a type from a conditional and give it a name to use from the right side
+
+```typescript
+type ReturnType<T> = T extends (...args: any[]) => infer R ? R : never;
+
+function getUser() {
+  return { id: 1, name: "Alice" };
+}
+
+type User = ReturnType<typeof getUser>; // { id: number; name: string }
+```
+
+```typescript
+type UnpackArray<T> = T extends (infer U)[] ? U : T;
+
+type A = UnpackArray<string[]>; // string
+type B = UnpackArray<number>; // number
+type C = UnpackArray<{ name: string }[]>; // { name: string }
+type D = UnpackArray<string>; // string - not an array, returns T as is
+```
+
+```typescript
+type FirstArg<T> = T extends (first: infer F, ...rest: any[]) => any ? F : never;
+
+function createIssue(projectId: string, title: string, priority: number) {}
+
+type First = FirstArg<typeof createIssue>; // string
+```
+
+## Distributive Conditional Types
+
+```typescript
+type ToArray<T> = T extends any ? T[] : never;
+type A = ToArray<string | number>; // string[] | number[]
+type B = ToArray<{ name: string } | { age: number }>; // { name: string }[] | { age: number }[]
+
+type IsUnion<T> = [T] extends [any] ? "yes" : "no";
+type C = IsUnion<string | number>; // "yes"
+type D = IsUnion<string>; // "no"
+```
+
+> `never` can be used to filter out types from a union
+
+```typescript
+type NonNullable<T> = T extends null | undefined ? never : T;
+
+type A = NonNullable<string | null | undefined>; // string
+type B = NonNullable<string | number | null>; // string | number
+
+type KeysOfType<T, V> = {
+  [K in keyof T]: T[K] extends V ? K : never;
+};
+
+interface Issue {
+  id: number;
+  title: string;
+  description: string;
+  assigneeId: number;
+  priority: "low" | "medium" | "high";
+}
+
+type StringKeys = KeysOfType<Issue, string>; // "title" | "description"
+type NumberKeys = KeysOfType<Issue, number>; // "id" | "assigneeId"
+```
+
+## Template Literals
+
+> We can do use conditional types with template literals to do string manipulation at the type level
+
+```typescript
+type EventName<T extends string> = `on${Capitalize<T>}`;
+
+type ClickEvent = EventName<"click">; // "onClick"
+type HoverEvent = EventName<"hover">; // "onHover"
+
+type Events = "click" | "hover" | "submit";
+type AllEvents = EventName<Events>; // "onClick" | "onHover" | "onSubmit"
+```

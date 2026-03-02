@@ -1,0 +1,126 @@
+---
+title: Server vs Client State
+description: Understanding server vs client state in frontend applications
+order: 8
+---
+
+> **Client state** is state that lives purely in the browser with no representation on the server
+
+> **Server state** is state that lives on the server and we are just catching a snapshot of locally
+
+## Problems with mixing server and client state
+
+- What happens when the data goes stale?
+- How do we refetch when the user comes back to the app?
+- How do you avoid refetching if multiple components mount at the same time and both need the same data?
+- How do you update the cache after a mutation?
+- How do you handle background refetching without showing a loading state to the user?
+
+## What server state needs
+
+> Server state has some fundamental differences from client state that make it more difficult to manage
+
+- It can become stale while we looking at it
+- It needs to be fetched async
+- It can be shared by multiple components that shouldn't each trigger their own fetch
+- It needs to be refreshed periodically or on certain events
+- It needs optimistic updates for good UX
+- It needs cache invalidation after mutations
+
+> These issues have a general solution in TanStack Query and Apollo Client
+
+### TanStack Query
+
+> TanStack treats every piece of server state as a cache entry identified by a key
+
+```jsx
+function useIssues(projectId) {
+  return useQuery({
+    queryKey: ["issues", projectId],
+    queryFn: () => api.getIssues(projectId),
+    staleTime: 1000 * 60, // 1 minute
+  });
+}
+
+function IssueList({ projectId }) {
+  const { data: issues, isLoading, error } = useIssues(projectId);
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+  return issues.map((issue) => <IssueItem key={issue.id} issue={issue} />);
+}
+```
+
+TanStack handles:
+
+- **Deduplication** - if multiple components call `useIssues(projectId)` at the same time, only one network request is made and the result is shared
+- **Background refetching** - if the data goes stale while the user is looking at it, TanStack can automatically refetch in the background and update the UI without showing a loading state
+- **Stale-while-revalidate** - if the data is stale, TanStack can return the stale data immediately and then refetch in the background to update it
+- **Automatic retries** - if a request fails, TanStack can automatically retry it with exponential backoff
+
+> TanStack also handles cache invalidation after mutations
+
+```jsx
+const queryClient = useQueryClient();
+
+const createIssue = useMutation({
+  mutationFn: (newIssue) => api.createIssue(newIssue),
+  onSuccess: () => {
+    queryClient.invalidateQueries(["issues"]); // invalidate all queries with key starting with "issues"
+  },
+});
+```
+
+> Optimistic updates can be used by updating the cache immediately before the mutation completes. The user will see the update instantly, and if the server rejects it, the UI will roll back.
+
+```jsx
+const updateIssue = useMutation({
+  mutationFn: (updatedIssue) => api.updateIssue(updatedIssue),
+  onMutate: async (updatedIssue) => {
+    // cancel any in-flight queries
+    await queryClient.cancelQueries(["issues", updatedIssue.projectId]);
+
+    // snapshot current value for rollback
+    const previousIssues = queryClient.getQueryData(["issues", updatedIssue.projectId]);
+
+    // optimistically update the cache
+    queryClient.setQueryData(["issues", updatedIssue.projectId], updatedIssue);
+
+    return { previousIssues };
+  },
+  onError: (err, updatedIssue, context) => {
+    // rollback on failure
+    queryClient.setQueryData(["issues", updatedIssue.projectId], context.previousIssues);
+  },
+});
+```
+
+### Apollo Client
+
+> Apollo Client has a cache system that normalises data by type and ID
+
+```graphql
+# query runs and fetches user "123"
+query {
+  user(id: "123") {
+    id
+    name
+    email
+  }
+}
+
+# different query also fetches user "123"
+query {
+  currentUser {
+    id
+    name
+    email
+  }
+}
+```
+
+Apollo will store both results in the same cache entry: `User:123`. If either query updates the user's results, both queries results will update automatically across the whole app.
+
+## Client State
+
+After this, all other client state can be managed with `useState` or a lightweight store, such as Zustand or Jotai.
