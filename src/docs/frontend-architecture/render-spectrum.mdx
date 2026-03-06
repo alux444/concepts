@@ -1,0 +1,106 @@
+---
+title: Render Spectrum
+description: Understanding the render spectrum in frontend applications
+order: 9
+---
+
+> There are different ways to render a frontend application, and they exist on a spectrum based on where the rendering happens: server-side, client-side or somewhere in between.
+
+## Static Site Generation (SSG)
+
+> SSG is when HTML is generated and build time and served as static files. The simplest and most performant option, but doesn't handle anything dynamic
+
+## Client Side Rendering (CSR)
+
+> CSR is when the browser builds the webpage using JS after loading. This is slower for the initial load but interactivity is very fast after that. There are sometimes SEO issues with CSR.
+
+## Server Side Rendering (SSR)
+
+> SSR means generating the full HTML for a page on the server in response to each response over building the UI in the browser with JS.
+
+Example workflow:
+
+1. Browser sends `GET /products/4` request
+2. Server receives request, runs component tree
+3. Components fetch data (DB, APIs, etc)
+4. Framework serialises component tree to an HTML string
+5. Server sends `200 OK` response with full HTML + `<scripts>` tag
+6. Browser paints immediately, no JS is needed for initial render
+7. Browser downloads JS bundles
+8. JS frameworks walks existing DOM and attaches event listeners, etc (hydration)
+
+### Hydration
+
+> Hydration is the process of making server-rendered HTML interactive
+
+React hydrates by:
+
+1. Calling `hydrateRoot` instead of `createRoot`
+2. Reconciling the expected virtual DOM against the actual DOM
+3. Attaching event handlers without re-creating DOM nodes
+
+**Hydration mismatch** happens when the server-rendered HTML differs from what the client would render. This is often caused by:
+
+- `typeof window !== "undefined"` - checks that cause different rendering on server vs client
+- `Date.now()` or `Math.random()` - non deterministic values that differ between server and client
+- Data that changed between the time the server rendered and the client rendered
+
+---
+
+### Advantages
+
+- TTFB (time to first byte) is faster because the server can start sending HTML immediately
+- FCP (first contentful paint) is much faster because the browser can render HTML immediately without waiting for JS
+- TTI (time to interactive) - may still be slow while JS hydrates
+- Better SEO because search engines can crawl the full HTML
+- SSR front-loading can allow for caching at the CDN level, which can make subsequent requests faster
+
+### Disadvantages
+
+- Slower TTI because the browser has to wait for JS to download and hydrate before the page is interactive
+- More complex infrastructure because you need a server to render the HTML
+- More complex development because you have to handle server vs client differences and potential hydration mismatches
+
+---
+
+### Streaming
+
+> Modern frameworks (e.g React 18) support streaming, so instead of waiting for the entire page to render before sending bytes, the server can stream HTML chunks as they become ready
+
+1. Server sends `<head>` and above-fold HTML immediately
+2. Streams in shell (nav, layout, etc)
+3. Streams in data-dependent components as their data becomes ready
+
+This is driven by `renderToPipeableStream` (node) or `renderToReadableStream` (edge) instead of `renderToString`. Suspense boundaries become holes that are filled via streaming.
+
+---
+
+### Caching
+
+- **CDN / edge caching** - cache rendered HTML by URL + varying headers
+- **In process cache** - memoize DB queries within a single request to avoid redundant queries during rendering
+- **Stale-while-revalidate** - serve stale HTML while re-rendering in the background for the next request
+- **Partial caching** - cache stable layouts, stream in dynamic data on top of them
+
+---
+
+## Common issues
+
+- **Hydration mismatches** - when server-rendered HTML differs from what the client would render, causing hydration to fail
+- **Waterfall data fetching** - sequential `awaits` create SSR latency. Use `Promise.all` or React Suspense to fetch in parallel
+- **Memory leaks** - in the browser, each use has a fresh JS runtime. On the server, there is one JS runtime that handles multiple requests concurrently, so accidental shares can happen that cause memory leaks or data leaks between users
+  - e.g, if a `const store = []` is defined at the module level and mutated in render, it will cause 1. a memory leak as the store grows indefinitely and 2. a data leak as users could see each other's data
+- **Over-fetching** - typically in SSR, data fetching happens at the page level. Use streaming and suspense to only fetch what's needed for the above-the-fold content, and lazy load the rest on the client.
+
+---
+
+## When to use SSR
+
+- Pages where initial load performance matters
+- SEO critical content that is still dynamic (e.g marketing pages, etc)
+- Pages with data that MUST be fresh (e.g stock prices, sports scores, etc)
+
+## When to use CSR
+
+- Highly interactive apps where data is user-specific and behind an auth wall — SEO is irrelevant and there's no caching benefit to server-rendering
+- Real-time apps where data is always changing and caching isn't helpful (e.g chat apps, collaborative docs, etc)
