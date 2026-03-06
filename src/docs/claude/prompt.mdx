@@ -1,11 +1,39 @@
 ---
 title: Claude Prompt
-description: My current CLAUDE.md for typescript
+description: My current CLAUDE.md (TypeScript + Code Standards)
 order: 1
 ---
 
-```
----
+export const components = {
+  a: ({href, children, ...props}) => {
+    if (href?.endsWith('.md')) {
+      return (
+        <a 
+          href={href} 
+          download 
+          style={{
+            display: 'inline-block',
+            padding: '8px 16px',
+            backgroundColor: '#007acc',
+            color: 'white',
+            textDecoration: 'none',
+            borderRadius: '4px',
+            fontWeight: '500',
+            marginBottom: '24px'
+          }}
+          {...props}
+        >
+          {children}
+        </a>
+      );
+    }
+    return <a href={href} {...props}>{children}</a>;
+  }
+};
+
+<a href="/CLAUDE.md">📥 Download CLAUDE.md</a>
+
+------
 
 TypeScript
 
@@ -80,6 +108,3 @@ Dependency Injection
   that's a signal to extract and inject instead
 - Interfaces should be driven by the consumer, not the implementation — define what the caller
   needs, not what the dependency happens to offer
-
----
-```
