@@ -10,7 +10,13 @@ interface SidebarProps {
 export function Sidebar({ open, onClose }: SidebarProps): React.ReactElement {
   const location = useLocation();
   const navTree = getNavTree();
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    navTree.forEach(({ category }) => {
+      initial[category] = true;
+    });
+    return initial;
+  });
 
   const toggleCategory = (category: string): void => {
     setCollapsed((prev) => ({ ...prev, [category]: !prev[category] }));
