@@ -1,39 +1,3 @@
----
-title: CSS Skill
-description: CSS skill
-order: 2
----
-
-export const components = {
-  a: ({href, children, ...props}) => {
-    if (href?.endsWith('.md')) {
-      return (
-        <a 
-          href={href} 
-          download 
-          style={{
-            display: 'inline-block',
-            padding: '8px 16px',
-            backgroundColor: '#007acc',
-            color: 'white',
-            textDecoration: 'none',
-            borderRadius: '4px',
-            fontWeight: '500',
-            marginBottom: '24px'
-          }}
-          {...props}
-        >
-          {children}
-        </a>
-      );
-    }
-    return <a href={href} {...props}>{children}</a>;
-  }
-};
-
-<a href="/css-tricks.md">📥 Download css-tricks.md</a>
-
-------
 CSS tricks and patterns from Sajid (iamsajid.com/css-tricks). Use these techniques when writing CSS for this project or any frontend work. Apply the relevant pattern when the user asks for styling help.
 
 ---
@@ -427,4 +391,3 @@ Sajid's variable convention — define everything in `:root`, reference everywhe
   --p: 18px/30px var(--ff);
 }
 ```
-------
