@@ -26,6 +26,8 @@ export function Sidebar({ open, onClose }: SidebarProps): React.ReactElement {
     return location.pathname === `/docs/${slug}`;
   };
 
+  const isClaudeActive = location.pathname === "/claude";
+
   return (
     <>
       {/* Mobile overlay */}
@@ -50,6 +52,18 @@ export function Sidebar({ open, onClose }: SidebarProps): React.ReactElement {
         </Link>
 
         <nav className="flex flex-col gap-1">
+          <Link
+            to="/claude"
+            onClick={onClose}
+            className={`block px-3 py-2 mb-3 text-sm rounded-md no-underline transition-colors duration-150 ${
+              isClaudeActive
+                ? "bg-bg-secondary text-primary font-medium"
+                : "text-text-secondary hover:text-text-primary hover:bg-bg-secondary"
+            }`}
+          >
+            Claude Skills
+          </Link>
+
           {navTree.map(({ category, items }) => (
             <div key={category} className="mb-2">
               <button
