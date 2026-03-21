@@ -1,40 +1,3 @@
----
-title: Claude Prompt
-description: My current CLAUDE.md (TypeScript + Code Standards)
-order: 1
----
-
-export const components = {
-  a: ({href, children, ...props}) => {
-    if (href?.endsWith('.md')) {
-      return (
-        <a 
-          href={href} 
-          download 
-          style={{
-            display: 'inline-block',
-            padding: '8px 16px',
-            backgroundColor: '#007acc',
-            color: 'white',
-            textDecoration: 'none',
-            borderRadius: '4px',
-            fontWeight: '500',
-            marginBottom: '24px'
-          }}
-          {...props}
-        >
-          {children}
-        </a>
-      );
-    }
-    return <a href={href} {...props}>{children}</a>;
-  }
-};
-
-<a href="/CLAUDE.md">📥 Download CLAUDE.md</a>
-
-------
-
 TypeScript
 
 - NEVER use any — use unknown, proper interfaces, or generics instead
@@ -46,6 +9,8 @@ TypeScript
 - Use types to eliminate invalid states — don't use -1 or null with a comment explaining what it
   means. Use T | undefined, union types, or tagged unions so the compiler enforces correctness
   instead of a comment.
+- Use map, filter, find, some, every, flatMap for all collection work.
+- Prefer chained methods over manual loops - they read like a description of the transformation.
 
 Functions
 

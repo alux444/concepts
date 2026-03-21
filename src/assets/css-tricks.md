@@ -9,7 +9,9 @@ Combine two shadows — one dark and close, one light and spread — for natural
 ```css
 /* Combined: natural depth */
 .card {
-  box-shadow: 0px 4px 4px #00000030, 0px 12px 12px #00000015;
+  box-shadow:
+    0px 4px 4px #00000030,
+    0px 12px 12px #00000015;
 }
 
 /* Dark only: tight, close shadow */
@@ -31,7 +33,8 @@ Use the `padding-box` / `border-box` trick for gradient borders on any element.
 
 ```css
 .gradient-border {
-  background: linear-gradient(var(--bg), var(--bg)) padding-box,
+  background:
+    linear-gradient(var(--bg), var(--bg)) padding-box,
     linear-gradient(45deg, #ffe537 0%, #537fe7 100%) border-box;
   border: solid 2px transparent;
   border-radius: 8px;
@@ -73,7 +76,8 @@ Apply `background-clip: text` to create gradient-colored text.
 
 ```css
 .dashing {
-  background: linear-gradient(var(--bg), var(--bg)) padding-box,
+  background:
+    linear-gradient(var(--bg), var(--bg)) padding-box,
     linear-gradient(45deg, #ffe537 0%, #537fe7 100%) border-box;
   border: solid 2px transparent;
 }
@@ -94,9 +98,15 @@ Apply `background-clip: text` to create gradient-colored text.
   animation: bg 2s ease-in-out infinite;
 }
 @keyframes bg {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 100%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 100%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 ```
 
@@ -186,9 +196,19 @@ svg:hover {
 
 ```css
 @keyframes bounce {
-  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-30px); }
-  60% { transform: translateY(-15px); }
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-30px);
+  }
+  60% {
+    transform: translateY(-15px);
+  }
 }
 .bounce {
   animation: bounce 2s infinite ease-in-out;
@@ -199,8 +219,13 @@ svg:hover {
 
 ```css
 @keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.2); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
 }
 .pulse {
   animation: pulse 1s infinite ease-in-out;
@@ -211,8 +236,12 @@ svg:hover {
 
 ```css
 @keyframes flip {
-  0% { transform: rotateY(0); }
-  100% { transform: rotateY(360deg); }
+  0% {
+    transform: rotateY(0);
+  }
+  100% {
+    transform: rotateY(360deg);
+  }
 }
 .flip {
   animation: flip 2s infinite linear;
@@ -223,7 +252,8 @@ svg:hover {
 
 ```css
 .spinner {
-  background: linear-gradient(var(--bg), var(--bg)) padding-box,
+  background:
+    linear-gradient(var(--bg), var(--bg)) padding-box,
     linear-gradient(45deg, #ffe537 0%, #537fe7 100%) border-box;
   border: solid 8px transparent;
   border-radius: 50%;
@@ -232,8 +262,12 @@ svg:hover {
   animation: spin 4s ease-in-out infinite;
 }
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 ```
 
@@ -264,9 +298,15 @@ svg:hover {
   display: flex;
   gap: 20px;
 }
-.flex-container :nth-child(1) { flex: 1; }
-.flex-container :nth-child(2) { flex: 2; }
-.flex-container :nth-child(3) { flex: 3; }
+.flex-container :nth-child(1) {
+  flex: 1;
+}
+.flex-container :nth-child(2) {
+  flex: 2;
+}
+.flex-container :nth-child(3) {
+  flex: 3;
+}
 ```
 
 ---
@@ -316,7 +356,7 @@ Turn plain radio buttons into styled card selectors.
 }
 
 .radio-card input[type="radio"]::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 20px;
   right: 20px;
@@ -361,7 +401,8 @@ Clean card with image, text, and gradient-border button.
   display: inline-block;
   text-decoration: none;
   color: #f9f9f9;
-  background: linear-gradient(#1e1e1e, #1e1e1e) padding-box,
+  background:
+    linear-gradient(#1e1e1e, #1e1e1e) padding-box,
     linear-gradient(45deg, #ffe537 0%, #537fe7 100%) border-box;
   border: solid 2px transparent;
   border-radius: 8px;
@@ -379,11 +420,11 @@ Sajid's variable convention — define everything in `:root`, reference everywhe
 ```css
 :root {
   --ff: "Montserrat", sans-serif;
-  --colorp: #f9f9f9;      /* primary text */
-  --colora: #ffe537;       /* accent */
-  --colora2: #537fe7;      /* accent 2 */
-  --colorbody: #1e1e1e;    /* background */
-  --colors: #333;          /* surface */
+  --colorp: #f9f9f9; /* primary text */
+  --colora: #ffe537; /* accent */
+  --colora2: #537fe7; /* accent 2 */
+  --colorbody: #1e1e1e; /* background */
+  --colors: #333; /* surface */
   --transition: 0.3s ease-in-out;
 
   /* Font shorthand: weight size/line-height family */
