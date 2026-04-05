@@ -195,7 +195,9 @@ BUT...
 - GET only, can't send POST body, e.g LLM APIs, need prompt in body
 - no custom headers (e.g setting `Authorization`) (can pass token as query param or cookie)
 - no binary data support, only text
-  So...
+
+So...
+
 - use for simple dashboards, live feeds, notifications. if GET + auto-reconnect is enough
 - for complex use cases, should use `fetch`
 
