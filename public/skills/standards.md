@@ -73,3 +73,10 @@ Dependency Injection
   that's a signal to extract and inject instead
 - Interfaces should be driven by the consumer, not the implementation — define what the caller
   needs, not what the dependency happens to offer
+
+Commits & PRs
+
+- One logical change per commit, the same rule as functions, applied to diffs
+- Scaffold before you implement, land the interface, type, or stub first; the body comes next
+- A diff should be reviewable in a single sitting — if it isn't, split it
+- Refactor commits never contain logic changes, and vice versa

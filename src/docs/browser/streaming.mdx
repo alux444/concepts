@@ -1,0 +1,273 @@
+---
+title: Streaming
+description: Understanding streaming responses
+order: 7
+---
+
+## Streaming
+
+> Instead of waiting for an entire response to be ready, push data in chunks as it's generated
+
+## Approaches
+
+### Server-Sent Events (SSE)
+
+- server sends `text/event-stream`, persistent HTTP connection
+
+```
+data: {"type":"message","text":"Hello, "}
+data: {"type":"message","text":"world!"}
+data: [DONE]
+```
+
+### WebSockets
+
+- bidirectional, full-duplex communication over a single TCP connection
+- useful for when client needs to send data mid-stream. complex to set up.
+
+### Chunked Transfer Encoding
+
+- raw HTTP level streaming
+- server sends `Transfer-Encoding: chunked` header, body arrives in pieces
+- SSE and WebSockets are built on top of this
+
+## Backpressure
+
+> when server produces data than client can consume, chunks will queue up in memory. there is a native browser API, `ReadableStream` that handles this automatically with a high water mark
+
+```javascript
+const response = await fetch("/stream");
+const reader = response.body.getReader();
+
+const stream = new ReadableStream({
+  start(controller) {
+    controller.enqueue("chunk");
+    console.log(controller.desiredSize); // check backpressure - < 0 means backpressure is building
+  },
+});
+```
+
+if we want to slow the producer, we can use a `WritableStream` with backpressure signals to tell the producer when to pause/resume:
+
+```javascript
+async function processChunk(chunk) {
+  // ...process some data
+  // fake async processing delay
+  await new Promise((resolve) => setTimeout(resolve, 100));
+}
+
+const writable = new WritableStream({
+  write(chunk) {
+    // return a promise that pauses the producer until it resolves
+    return processChunk(chunk);
+  },
+});
+```
+
+> we rarely would need to implement this for something like SSE. most libraries handle this for us. we usually can just stick to a manual loop for AI streaming responses
+
+## Mid-stream error handling
+
+> A stream can fail after a `200 OK`. the HTTP status is sent with teh headers, before the body, so a `try/catch` around our `fetch` won't catch errors that happen mid-body
+
+```javascript
+// doesn't work
+try {
+  const response = await fetch("/stream");
+  const reader = response.body.getReader();
+  // read chunks...
+} catch (err) {
+  console.error("Stream error:", err);
+}
+
+// instead, need to handle errors inside read loop
+const response = await fetch("/stream");
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+
+try {
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+
+    // simplified for demo
+    const parsed = ...some logic here
+
+    if (parsed.type === "error") {
+      throw new Error(parsed.message);
+    }
+
+    console.log(parsed.text);
+  }
+} catch (e) {
+  console.error("Stream error:", e);
+} finally {
+  reader.releaseLock();
+}
+```
+
+There are two types of mid-stream errors:
+
+- transport errors - network drops, reader throws. caught by `catch` block around `reader.read()`
+- in-band errors - server sends `{"type": "error", "message": "something went wrong"}` as part of the stream. need to be handled in the read loop by checking the content of each chunk
+
+## Buffering and proxy gotchas
+
+> nginx and other proxies often buffer responses by default, waiting for the full body before forwarding. this will silently break SSE and chunked streaming
+
+```nginx
+location /stream {
+  proxy_pass http://backend;
+
+  # disable buffering for this route
+  proxy_buffering off;
+
+  # disable caching as cached responses are not streaming
+  # could have us waiting for full response before caching and serving. stream might never end, connection times out.
+  # could also cache full completed response, serve that to every client, no streaming, wrong content AND potential data leak
+  # redundant if caching isn't configured
+  proxy_cache off;
+
+  # clear `Connection` header before forwarding to backend
+  # we don't want to forward like `Connection: close` from client
+  # this would interfere with how the backend handles the connection. let nginx manage this.
+  proxy_set_header Connection "";
+
+  # allow forwarding with `Transfer-Encoding: chunked`
+  # normally on by default, just explicit
+  chunked_transfer_encoding on;
+}
+```
+
+```javascript
+// server side, using express
+res.setHeader("Content-Type", "text/event-stream");
+
+// tell every intermediary to not cache this response
+// otherwise we might cache first chunk and serve same chunk to every client
+res.setHeader("Cache-Control", "no-cache");
+
+// nginx specific - instead of disabling at nginx config
+// we can tell per-response at the application layer
+// if we don't directly control nginx config we might need to do this
+res.setHeader("X-Accel-Buffering", "no");
+
+// send headers immediately
+// client needs to receive headers to know stream is starting
+res.flushHeaders();
+```
+
+- cloudflare buffers by default on free plans, "disable railgun" or enterprise for true streaming
+- aws ALB has 60s idle timeout, send comment ping `: keep-alive\n\n` every 30s to prevent timeout
+- gzip/brotli compression buffers chunks to compress efficiently, disable the compression on streaming endpoints
+
+## EventSource
+
+> native browser API for SSE, handles reconnection and parsing for us
+
+```javascript
+const source = new EventSource("/stream");
+
+source.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log("Received:", data);
+};
+
+source.addEventListener("custom-event", (event) => {
+  // listens for events like this:
+  // event: custom-event
+  // data: {"foo": "bar"}
+  const data = JSON.parse(event.data);
+  console.log("Received custom event:", data);
+});
+
+source.onerror = (err) => {
+  if (source.readyState === EventSource.CLOSED) {
+    console.log("Connection closed by server");
+  } else {
+    console.error("Stream error:", err);
+  }
+};
+```
+
+BUT...
+
+- GET only, can't send POST body, e.g LLM APIs, need prompt in body
+- no custom headers (e.g setting `Authorization`) (can pass token as query param or cookie)
+- no binary data support, only text
+  So...
+- use for simple dashboards, live feeds, notifications. if GET + auto-reconnect is enough
+- for complex use cases, should use `fetch`
+
+## Reconnection
+
+`EventSource` reconnects automatically after ~3s on disconnect. the server can send an event `id` and browser will include as `Last-Event-ID` on reconnect so server can resume where it left off
+
+```javascript
+// server side, express
+let eventId = 0;
+
+res.write(`id: ${eventId}\n`);
+res.write(`data: ${JSON.stringify({ text: "Hello, world!" })}\n\n`);
+
+app.get("/stream", (req, res) => {
+  const lastEventId = req.headers["last-event-id"];
+  const resumeFrom = lastEventId ? parseInt(lastEventId) + 1 : 0;
+  // ... generate events starting from resumeFrom
+});
+```
+
+to implement reconnection in `fetch`
+
+```javascript
+async function streamWithRetry(url, onChunk, retries = 3) {
+  let lastEventId = null;
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const headers = {};
+      if (lastEventId) {
+        headers["Last-Event-ID"] = lastEventId;
+      }
+
+      const response = await fetch(url, { headers });
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        // convert bytes to strings, tell decoder there are more bytes coming with {stream: true} so it can handle multi-byte chars split across chunks
+        buffer += decoder.decode(value, { stream: true });
+
+        // split everything into lines
+        const lines = buffer.split("\n");
+
+        // last line might be incomplete, keep it in buffer for next chunk
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          if (line.startsWith("id: ")) {
+            lastEventId = line.slice(4);
+          } else if (line.startsWith("data: ")) {
+            const data = line.slice(6);
+            onChunk(data);
+          }
+        }
+      }
+      break;
+    } catch (err) {
+      if (attempt === retries) {
+        console.error("Stream failed after retries:", err);
+      } else {
+        console.warn(`Stream error, retrying (${attempt}/${retries})...`, err);
+        await new Promise((resolve) => setTimeout(resolve, 1000 * attempt)); // exponential backoff
+      }
+    }
+  }
+}
+```
+
+> LLMs tend to use a `delta` pattern, with each chunk only containing the new text, not the full response so far
