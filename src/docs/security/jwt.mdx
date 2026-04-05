@@ -1,0 +1,56 @@
+---
+title: JWT
+description: JWT
+order: 1
+---
+
+- use for when a user logs in, and subsequent requests need to authenticate the user
+- instead, server returns a signed token that identifies you. present on every request instead of doing something like a db hit
+- basically, a string made of 3 base64url encoded parts: header, payload, signature
+
+### Header
+
+```json
+{
+  "alg": "HS256",
+  "kid": "12345"
+}
+```
+
+- alg: algorithm used to sign the token, e.g. HS256 (HMAC with SHA-256)
+- kid: key identifier, used to select the correct signing key
+
+### Payload
+
+```json
+{
+  "sub": "1234567890",
+  "app_id": "my-app",
+  "exp": 1712345678,
+  "iat": 1712345678,
+  "iss": "my-auth-server",
+  "aud": "my-api"
+}
+```
+
+- usually arbitrary JSON data
+- there are some common fields, like:
+  - sub: subject, usually the user ID
+  - exp: expiration time, in seconds since epoch
+  - iss: issuer, the entity that issued the token
+  - app_id: custom field for the application ID
+
+### Signing approaches
+
+- symmetric (HS256): one shared secret, same key signs and verifies. every service that needs to verify the token needs to have the secret, which is a security risk
+- asymmetric (RS256, ES256): private key signs, public key verifies. auth server keeps private key secret, anyone can have public key.
+
+### Signature
+
+- the issuer signs the header and payload with the configured signing key. for symmetric algorithms, this is the shared secret. for asymmetric algorithms this is the private key. verifiers use the public key.
+
+### Notes about JWT
+
+- not encrypted, just encoded. anyone can decode the header and payload, so don't put sensitive info in there
+- not revocable by default, valid until expiry. need to implement something like a blacklist (db lookup)
+- not a session, no server-side state held for the token. passes, or doesn't

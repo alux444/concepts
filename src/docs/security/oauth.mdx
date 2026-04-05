@@ -1,0 +1,46 @@
+---
+title: OAuth
+description: OAuth
+order: 2
+---
+
+> Authorization framework for allowing a third-party application to access resources on behalf of a user (without seeing their password)
+
+### Before OAuth
+
+- user gives their username and password to a third-party app
+- third-party app will use those credentials on behalf of the user
+
+### With OAuth
+
+- user goes to third-party app, clicks "Login with X", the client app will redirect the user to an auth endpoint with parameters
+  - `client_id`: identifies the third-party app
+  - `redirect_uri`: where the auth server should redirect back to after login
+  - `scope`: what permissions the third-party app is requesting (e.g. read profile, post on your behalf)
+  - `response_type`: what the client app wants back (e.g. `code` for authorization code flow)
+  - `state`: random string to prevent CSRF attacks
+- user logs in to auth server, grants permission to third-party app
+- auth server redirects user back to third-party app with an authorization code
+- third-party app exchanges authorization code for an access token (and optionally a refresh token)
+  - makes a direct server-to-server request to auth server's token endpoint, with the code and `client_secret` (proves the client app identity)
+- third-party app uses access token to access protected resources on behalf of the user
+  - the token is now a Bearer token in the `Authorization` header on API requests to the resource
+  - when the token expires, the client can make another request with the refresh token for a new access token
+
+## Why Code -> Token?
+
+> auth code flows through browser (url redirection) which is less secure, so we want token exchange to happen server-to-server, where `client_secret` can be kept secure (never exposed to browser or user)
+
+> OAuth also allows for limiting the scope of access of a token, so we can give out a token with limited permissions, e.g `read.email`
+
+## Variants
+
+> PKCE (Proof Key for Code Exchange) - extends this flow for mobile apps and SPAs that can't securely store a `client_secret`. Clients will generate a `code_verifier` (random string) and a `code_challenge` (hash of the verifier). During the token exchange, the client must provide the original `code_verifier`, which the auth server can verify against the `code_challenge` to ensure the request is legitimate.
+
+> Client Credentials - skips user entirely, client app exchanges credentials directly for a token
+
+> Implicit Flow (deprecated) - returned token directly in the URL. insecure, as tokens were exposed in logs / browser history
+
+## OpenID Connect
+
+> OAuth is purely about authorization (access to resources). OpenID Connect is an identity layer on top of OAuth that adds a standard ID token (JWT with user details), allowing clients to verify the user's identity.
