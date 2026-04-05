@@ -29,11 +29,11 @@ data: [DONE]
 
 - raw HTTP level streaming
 - server sends `Transfer-Encoding: chunked` header, body arrives in pieces
-- SSE and WebSockets are built on top of this
+- SSE and WebSockets are higher level protocols build on this idea
 
 ## Backpressure
 
-> when server produces data than client can consume, chunks will queue up in memory. there is a native browser API, `ReadableStream` that handles this automatically with a high water mark
+> when server produces more data than client can consume, chunks will queue up in memory. there is a native browser API, `ReadableStream` that handles this automatically with a high water mark
 
 ```javascript
 const response = await fetch("/stream");
@@ -68,7 +68,7 @@ const writable = new WritableStream({
 
 ## Mid-stream error handling
 
-> A stream can fail after a `200 OK`. the HTTP status is sent with teh headers, before the body, so a `try/catch` around our `fetch` won't catch errors that happen mid-body
+> A stream can fail after a `200 OK`. the HTTP status is sent with the headers, before the body, so a `try/catch` around our `fetch` won't catch errors that happen mid-body
 
 ```javascript
 // doesn't work

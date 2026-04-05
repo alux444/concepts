@@ -4,7 +4,7 @@ description: OAuth
 order: 2
 ---
 
-> Authorization framework for allowing a third-party application access resources on behalf of a user (without seeing their password)
+> Authorization framework for allowing a third-party application to access resources on behalf of a user (without seeing their password)
 
 ### Before OAuth
 
@@ -24,7 +24,7 @@ order: 2
 - third-party app exchanges authorization code for an access token (and optionally a refresh token)
   - makes a direct server-to-server request to auth server's token endpoint, with the code and `client_secret` (proves the client app identity)
 - third-party app uses access token to access protected resources on behalf of the user
-  - the token is now a `Bearer` header on API requests to the resource
+  - the token is now a Bearer token in the `Authorization` header on API requests to the resource
   - when the token expires, the client can make another request with the refresh token for a new access token
 
 ## Why Code -> Token?
@@ -41,6 +41,6 @@ order: 2
 
 > Implicit Flow (deprecated) - returned token directly in the URL. insecure, as tokens were exposed in logs / browser history
 
-## OpenID
+## OpenID Connect
 
 > OAuth is purely about authorization (access to resources). OpenID Connect is an identity layer on top of OAuth that adds a standard ID token (JWT with user details), allowing clients to verify the user's identity.

@@ -6,7 +6,7 @@ order: 1
 
 - use for when a user logs in, and subsequent requests need to authenticate the user
 - instead, server returns a signed token that identifies you. present on every request instead of doing something like a db hit
-- basically, a string made of 3 base64 encoded parts: header, payload, signature
+- basically, a string made of 3 base64url encoded parts: header, payload, signature
 
 ### Header
 
@@ -47,10 +47,10 @@ order: 1
 
 ### Signature
 
-- the issuer signs the header and payload with private key. anyone with the public key can verify the signature is legit
+- the issuer signs the header and payload with the configured signing key. for symmetric algorithms, this is the shared secret. for asymmetric algorithms this is the private key. verifiers use the public key.
 
 ### Notes about JWT
 
 - not encrypted, just encoded. anyone can decode the header and payload, so don't put sensitive info in there
 - not revocable by default, valid until expiry. need to implement something like a blacklist (db lookup)
-- not a session, no state is help about the token. it just passes, or doesn't
+- not a session, no server-side state held for the token. passes, or doesn't
