@@ -9,7 +9,9 @@ const skills: SkillDownload[] = [
   { label: "CSS Tricks", fileName: "css-tricks.md", publicPath: "/skills/css-tricks.md" },
   { label: "Decomposer", fileName: "decomposer.md", publicPath: "/skills/decomposer.md" },
   { label: "Planner", fileName: "planner.md", publicPath: "/skills/planner.md" },
-  { label: "Standards", fileName: "standards.md", publicPath: "/skills/standards.md" },
+  { label: "TypeScript", fileName: "standards-typescript.md", publicPath: "/skills/standards-typescript.md" },
+  { label: "Swift", fileName: "standards-swift.md", publicPath: "/skills/standards-swift.md" },
+  { label: "Golang", fileName: "standards-golang.md", publicPath: "/skills/standards-golang.md" },
   { label: "Better Tooling", fileName: "better-tooling.md", publicPath: "/skills/better-tooling.md" },
 ];
 
