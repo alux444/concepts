@@ -1,6 +1,7 @@
 TypeScript
 
 - NEVER use any — use unknown, proper interfaces, or generics instead
+- NEVER use enums - use plain `as const` objects with a type helper into a union type
 - Strict mode always — no @ts-ignore, no @ts-expect-error
 - Prefer interface over type for object shapes
 - All function parameters and return types must be explicitly typed
