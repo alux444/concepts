@@ -15,7 +15,7 @@ Type Safety
 
 Functions
 
-- Max ~50 lines
+- Treat ~50 lines as a rough function limit. Readability matters more than line counting.
 - Extract helpers aggressively ("wishful thinking" style)
 - Each function does ONE thing
 - Accept dependencies via initializer params — never `.shared` singletons inside a module
