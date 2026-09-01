@@ -5,10 +5,7 @@ interface SkillDownload {
 }
 
 const skills: SkillDownload[] = [
-  { label: "Coding", fileName: "coding.md", publicPath: "/skills/coding.md" },
   { label: "CSS Tricks", fileName: "css-tricks.md", publicPath: "/skills/css-tricks.md" },
-  { label: "Decomposer", fileName: "decomposer.md", publicPath: "/skills/decomposer.md" },
-  { label: "Planner", fileName: "planner.md", publicPath: "/skills/planner.md" },
   { label: "TypeScript", fileName: "standards-typescript.md", publicPath: "/skills/standards-typescript.md" },
   { label: "Swift", fileName: "standards-swift.md", publicPath: "/skills/standards-swift.md" },
   { label: "Golang", fileName: "standards-golang.md", publicPath: "/skills/standards-golang.md" },
