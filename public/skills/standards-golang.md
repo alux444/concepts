@@ -17,6 +17,7 @@ Type Safety
 - Eliminate invalid states with types, not comments — don't return `-1`/`nil` + a comment explaining it; use a named error, a sentinel value with a real name, or a result struct so the compiler/reader can't miss it
 - Use named, explicit error variables (`var ErrNotFound = errors.New(...)`) — never bare strings via `errors.New("not found")` scattered around
 - Use slices idiomatically (`append`, range loops with clear intent) — but extract the transformation into a named function rather than inlining complex loop logic
+- Use compile-time interface assertions for concrete interface implementations: `var _ Interface = (*Implementation)(nil)`.
 
 Functions
 
