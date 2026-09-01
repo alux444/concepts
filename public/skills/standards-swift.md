@@ -1,6 +1,4 @@
-Here's the condensed version, matching your TS doc's density:
-
-**iOS Modularization (Swift)**
+iOS Modularization (Swift)
 
 - Split the app into framework modules by responsibility (`Core`, `Networking`, `DesignSystem`, `FeatureHome`, etc.) — never one monolithic target
 - Each module's public API is exactly what's marked `public`/`open` — default to `internal`, leak nothing else
@@ -17,7 +15,7 @@ Type Safety
 
 Functions
 
-- Max 50 lines — no exceptions
+- Max ~50 lines
 - Extract helpers aggressively ("wishful thinking" style)
 - Each function does ONE thing
 - Accept dependencies via initializer params — never `.shared` singletons inside a module

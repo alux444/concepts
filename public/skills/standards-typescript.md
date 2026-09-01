@@ -15,7 +15,7 @@ TypeScript
 
 Functions
 
-- Max 50 lines per function — no exceptions
+- Max ~50 lines per function
 - Extract helpers aggressively ("wishful thinking" style: write the high-level flow first calling
   functions that don't exist yet, then implement them)
 - Each function does ONE thing

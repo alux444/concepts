@@ -1,7 +1,3 @@
-Here's the Go version, same density as the others:
-
----
-
 **Go Modularization / Style**
 
 - Split by package responsibility (`core`, `network`, `design`, `featurehome`, etc.) — never one big `main` package with everything in it
@@ -21,7 +17,7 @@ Type Safety
 
 Functions
 
-- Max 50 lines — no exceptions
+- Max ~50 lines 
 - Extract helpers aggressively ("wishful thinking" style)
 - Each function does ONE thing
 - Accept dependencies as parameters (interfaces) — never reach for package-level globals or `init()`-created singletons
@@ -36,7 +32,7 @@ Control Flow
 
 Naming
 
-- NEVER abbreviate — `networkClient` not `netClt` (yes, even though Go style guides love short names — prioritize clarity over Go convention here)
+- don't abbreviate — `networkClient` not `netClt` (Go convention cases are fine though)
 - Units in names — `timeoutMs`, `cacheExpiryMinutes`
 - Magic values → named constants (`const`), or a typed enum-like pattern (`type Status int` + named consts) instead of raw ints/strings
 - Complex conditions become named variables or functions
