@@ -1,3 +1,10 @@
+---
+name: css-styling-patterns
+description: Implement CSS styling with reusable patterns for shadows, gradients, buttons, motion, responsive sizing, and selection controls. Use when styling components or adding visual polish to a frontend.
+---
+
+# CSS styling patterns
+
 CSS tricks and patterns from Sajid (iamsajid.com/css-tricks). Use these techniques when writing CSS for this project or any frontend work. Apply the relevant pattern when the user asks for styling help.
 
 ---

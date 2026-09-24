@@ -1,15 +1,15 @@
 interface SkillDownload {
   label: string;
-  fileName: string;
-  publicPath: string;
+  name: string;
 }
 
 const skills: SkillDownload[] = [
-  { label: "CSS Tricks", fileName: "css-tricks.md", publicPath: "/skills/css-tricks.md" },
-  { label: "TypeScript", fileName: "standards-typescript.md", publicPath: "/skills/standards-typescript.md" },
-  { label: "Swift", fileName: "standards-swift.md", publicPath: "/skills/standards-swift.md" },
-  { label: "Golang", fileName: "standards-golang.md", publicPath: "/skills/standards-golang.md" },
-  { label: "Better Tooling", fileName: "better-tooling.md", publicPath: "/skills/better-tooling.md" },
+  { label: "UI interaction design", name: "ui-interaction-design" },
+  { label: "CSS styling patterns", name: "css-styling-patterns" },
+  { label: "TypeScript code standards", name: "typescript-code-standards" },
+  { label: "Swift code standards", name: "swift-code-standards" },
+  { label: "Go code standards", name: "go-code-standards" },
+  { label: "Command-line tooling", name: "command-line-tooling" },
 ];
 
 export function ClaudePage(): React.ReactElement {
@@ -17,13 +17,15 @@ export function ClaudePage(): React.ReactElement {
     <div>
       <h1 className="text-4xl font-bold mb-2 gradient-text">Claude Skills</h1>
       <p className="text-text-secondary text-lg mb-8">Download the skill files used for Claude workflows.</p>
+      <p className="text-text-secondary mb-8">Save each SKILL.md in a folder matching the skill name shown below.</p>
 
       <div className="grid gap-4 sm:grid-cols-2">
         {skills.map((skill) => (
-          <div key={skill.fileName} className="card">
+          <div key={skill.name} className="card">
             <h2 className="text-lg font-semibold text-text-primary mb-3">{skill.label}</h2>
-            <a href={skill.publicPath} download={skill.fileName} className="btn btn-primary inline-block">
-              📥 Download {skill.fileName}
+            <p className="text-text-secondary mb-3 break-all">{skill.name}/SKILL.md</p>
+            <a href={`/skills/${skill.name}/SKILL.md`} download="SKILL.md" className="btn btn-primary inline-block">
+              📥 Download SKILL.md
             </a>
           </div>
         ))}

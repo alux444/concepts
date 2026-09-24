@@ -1,4 +1,11 @@
-TypeScript
+---
+name: typescript-code-standards
+description: Write or review TypeScript with strict types, clear control flow, dependency injection, and focused modules. Use for TypeScript implementation, refactoring, or code review.
+---
+
+# TypeScript code standards
+
+## Type safety
 
 - NEVER use any — use unknown, proper interfaces, or generics instead
 - NEVER use enums - use plain `as const` objects with a type helper into a union type
@@ -13,7 +20,7 @@ TypeScript
 - Use map, filter, find, some, every, flatMap for all collection work.
 - Prefer chained methods over manual loops - they read like a description of the transformation.
 
-Functions
+## Functions
 
 - Treat ~50 lines as a rough function limit. Readability matters more than line counting.
 - Extract helpers aggressively ("wishful thinking" style: write the high-level flow first calling
@@ -24,7 +31,7 @@ Functions
 - Use factory functions when dependency selection depends on runtime context (user config,
   environment, file type, etc.)
 
-Control Flow
+## Control flow
 
 - Early returns only — guard clause at the top, happy path at the bottom
 - No nested if/else chains — invert conditions and return early
@@ -32,7 +39,7 @@ Control Flow
 - No if/else chains for selecting implementations — use an interface with multiple implementations
   and inject the right one
 
-Naming
+## Naming
 
 - NEVER abbreviate variable names. userMessage not usrMsg.
 - Use units only where relevant (timeoutMs, fileSizeBytes)
@@ -42,7 +49,7 @@ Naming
 - Code should read like prose — if you feel the urge to add a comment, rename things until the
   code says it itself
 
-Style
+## Style
 
 - const by default, let only when mutation is required. Never var.
 - Destructure parameters and objects
@@ -50,7 +57,7 @@ Style
 - NEVER make bundles of utils. Sort them into their own relevant modules / move into relevant
   class / make a new class if needed.
 
-Comments
+## Comments
 
 - Don't write comments — improve the code instead
 - If a condition is complex enough to need a comment, extract it into a named variable or function
@@ -60,7 +67,7 @@ Comments
 - API documentation is not a comment — document public interfaces, expected behavior, and error
   conditions with JSDoc. This describes how to use the code, not how it works internally.
 
-Dependency Injection
+## Dependency injection
 
 - Constructor/parameter injection over global imports — pass dependencies in, don't reach out for
   them
@@ -75,7 +82,7 @@ Dependency Injection
 - Interfaces should be driven by the consumer, not the implementation — define what the caller
   needs, not what the dependency happens to offer
 
-Commits & PRs
+## Commits and pull requests
 
 - One logical change per commit, the same rule as functions, applied to diffs
 - Scaffold before you implement, land the interface, type, or stub first; the body comes next

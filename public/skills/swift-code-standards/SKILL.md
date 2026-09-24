@@ -1,11 +1,18 @@
-iOS Modularization (Swift)
+---
+name: swift-code-standards
+description: Write or review modular Swift apps with explicit access control, type-safe boundaries, and protocol-based dependency injection. Use for Swift or iOS implementation, refactoring, or code review.
+---
+
+# Swift code standards
+
+## iOS modularization
 
 - Split the app into framework modules by responsibility (`Core`, `Networking`, `DesignSystem`, `FeatureHome`, etc.) — never one monolithic target
 - Each module's public API is exactly what's marked `public`/`open` — default to `internal`, leak nothing else
 - Dependencies point one direction only, toward `Core` — features never import each other
 - Only the app target (composition root) knows concrete implementations — everything else depends on protocols
 
-Type Safety
+## Type safety
 
 - NEVER use `Any`/`AnyObject` to bridge modules — define a shared `protocol` or type in `Core` instead
 - No force-casts (`as!`) or force-unwraps (`!`) across module boundaries — use `as?` + `guard`
@@ -13,7 +20,7 @@ Type Safety
 - Eliminate invalid states with types, not comments — use `Optional`, `Result`, or `enum` with associated values, not `nil`/`-1` + a comment
 - Use `map`, `filter`, `compactMap`, `reduce`, `first(where:)` over manual loops
 
-Functions
+## Functions
 
 - Treat ~50 lines as a rough function limit. Readability matters more than line counting.
 - Extract helpers aggressively ("wishful thinking" style)
@@ -21,34 +28,34 @@ Functions
 - Accept dependencies via initializer params — never `.shared` singletons inside a module
 - Use factory types when implementation choice depends on runtime context
 
-Control Flow
+## Control flow
 
 - `guard` at the top, happy path at the bottom
 - No nested if/else — invert and return early
 - No else after a return
 - No if/else or switch chains to pick an implementation — use a protocol + multiple conformances, inject the right one
 
-Naming
+## Naming
 
 - NEVER abbreviate — `networkClient` not `netClt`
 - Units in names — `timeoutMs`, `cacheExpiryMinutes`
 - Magic values → named constants, or better, an `enum` instead of raw `Int`/`String`
 - Complex conditions become named `let`s or functions
 
-Style
+## Style
 
 - `let` by default, `var` only when mutation required
 - Access control is deliberate — don't leave things `public` (or default-visible) by accident
 - NEVER bundle helpers into `Utils.swift`/`Extensions.swift` — sort into the module/type they relate to
 
-Comments
+## Comments
 
 - Don't explain how code works — improve the code instead
 - Complex conditions get extracted, not commented
 - Exceptions: unsafe/perf hacks, links to algorithms implemented
 - `///` doc comments on `public` API only — document usage/behavior/errors, not internals
 
-Dependency Injection
+## Dependency injection
 
 - Constructor injection over singletons/global imports
 - One protocol per external boundary (wrap third-party SDKs in your own `Core` protocol)
@@ -57,7 +64,7 @@ Dependency Injection
 - Protocols shaped by the consumer's needs, not the implementer's
 - Inject fakes in tests — mocking imports is a signal to extract + inject instead
 
-Commits & PRs
+## Commits and pull requests
 
 - One logical change per commit
 - Scaffold (module + protocol stub) before implementation, as separate commits

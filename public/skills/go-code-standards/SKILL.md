@@ -1,4 +1,9 @@
-**Go Modularization / Style**
+---
+name: go-code-standards
+description: Write or review idiomatic Go with focused packages, consumer-defined interfaces, explicit dependencies, and clear error handling. Use for Go implementation, refactoring, or code review.
+---
+
+# Go code standards
 
 Prefer clear, idiomatic Go and the smallest design that satisfies the current product requirement.
 

@@ -1,16 +1,9 @@
 ---
-name: better-tooling
-description: >
-  Use this skill whenever you are about to perform file search, code search, file discovery,
-  JSON/YAML parsing, diffing, repo analysis, or any shell-based file operation inside a coding
-  agent task. This skill replaces slow default approaches (grep,
-  find, cat, python -c json.load) with faster purpose-built CLI tools. Trigger whenever you
-  would reach for grep, find, ls -R, cat, or python/node to parse config, even if not
-  explicitly asked to be fast. Do not use this skill if the required tools are not installed;
-  check first with "which tool-name".
+name: command-line-tooling
+description: Choose available command-line tools for file discovery, text and structural code search, JSON and YAML processing, repository inspection, and diff review. Use when investigating or editing a codebase through the shell.
 ---
 
-# better-tooling
+# Command-line tooling
 
 A drop-in set of faster CLI tools for coding agent workflows. **Only use these tools if they
 are already installed.** Before using any tool, verify with `which <tool>`. If a tool is
@@ -257,10 +250,10 @@ git diff HEAD | delta --side-by-side
 ## Fallback table
 
 | Situation                | Preferred | Fallback                            |
-| ------------------------ | --------- | ----------------------------------- | --------------- |
+| ------------------------ | --------- | ----------------------------------- |
 | `ast-grep` not installed | `sg`      | `rg` with careful regex             |
 | `fd` not installed       | `fd`      | `find . -name "pattern"`            |
 | `jq` not installed       | `jq`      | `python3 -c "import json,sys; ..."` |
 | `yq` not installed       | `yq`      | `python3 -c "import yaml,sys; ..."` |
 | `bat` not installed      | `bat`     | `cat`                               |
-| `tokei` not installed    | `tokei`   | `find . -name "\*.py"               | wc -l` per type |
+| `tokei` not installed    | `tokei`   | `find . -name "*.py"` piped to `wc -l` per type |
