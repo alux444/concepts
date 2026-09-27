@@ -69,9 +69,15 @@ orientations, or input modes the product does not support.
 - Stabilize animations and animated media for baseline captures using supported
   controls. Test motion, focus, keyboard, pointer, and gesture behavior separately
   when a screenshot cannot prove them. Do not change the layout just to stabilize it.
-- Check behavior before capturing: visible content, item counts, available actions,
-  preserved input, successful recovery, and relevant scrolling constraints. Prefer
-  user-visible outcomes over assertions that merely repeat implementation details.
+- Keep tests simple and focused on the end-to-end flow. Before capturing, check that
+  the screen's core content and controls are present and visible, then verify the
+  main action reaches its expected user-visible result. Element existence alone
+  does not prove a working flow.
+- Use only the assertions needed to establish the scenario and catch a broken core
+  interaction. Check details such as exact counts, preserved input, or recovery only
+  when they define the case. Do not assert every label, child element, style, spacing,
+  or intermediate implementation step. Let screenshots and visual review cover
+  appearance; avoid duplicating that coverage with granular assertions.
 
 ## Capture and compare
 

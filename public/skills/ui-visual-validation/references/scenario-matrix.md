@@ -29,6 +29,13 @@ Useful matrix columns:
 
 `ID | Screen | Role | Scenario | Fixture/setup | Display configuration | Assertion | Capture | Status/gap`
 
+Keep the Assertion column focused on the minimum evidence that the scenario is
+ready and its core flow works: essential content or controls are visible, and the
+main action produces the expected result. For example, verify that a populated list
+appears and opening an item shows its detail screen; do not assert every row's text
+or styling. Add precise checks only when they define the scenario, such as input
+remaining after a failed save. Use screenshot review for visual detail.
+
 Display configuration can identify a browser viewport, desktop window, or mobile
 device and orientation. Record relevant OS/runtime, pixel density, text size, theme,
 and locale alongside it so captures can be reproduced and compared appropriately.
