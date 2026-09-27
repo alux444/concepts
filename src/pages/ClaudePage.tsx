@@ -1,10 +1,12 @@
 interface SkillDownload {
   label: string;
   name: string;
+  references?: string[];
 }
 
 const skills: SkillDownload[] = [
   { label: "UI interaction design", name: "ui-interaction-design" },
+  { label: "UI visual validation", name: "ui-visual-validation", references: ["scenario-matrix.md"] },
   { label: "CSS styling patterns", name: "css-styling-patterns" },
   { label: "TypeScript code standards", name: "typescript-code-standards" },
   { label: "Swift code standards", name: "swift-code-standards" },
@@ -27,6 +29,14 @@ export function ClaudePage(): React.ReactElement {
             <a href={`/skills/${skill.name}/SKILL.md`} download="SKILL.md" className="btn btn-primary inline-block">
               📥 Download SKILL.md
             </a>
+            {skill.references?.map((fileName) => (
+              <div key={fileName} className="mt-3">
+                <p className="text-text-secondary mb-3 break-all">Save in {skill.name}/references/</p>
+                <a href={`/skills/${skill.name}/references/${fileName}`} download={fileName} className="btn btn-primary inline-block">
+                  📥 Download {fileName}
+                </a>
+              </div>
+            ))}
           </div>
         ))}
       </div>
