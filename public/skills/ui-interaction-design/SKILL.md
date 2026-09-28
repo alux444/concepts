@@ -1,6 +1,6 @@
 ---
 name: ui-interaction-design
-description: Design or review polished, accessible interfaces with intentional motion, feedback, hierarchy, overlays, typography, and responsive behaviour. Use for UI implementation, design-system work, interaction polish, or when an interface feels unresponsive or unclear.
+description: Design or review accessible interfaces with intentional feedback, motion, navigation continuity, stable loading layouts, and clear visual hierarchy. Use for UI implementation, design-system work, interaction polish, or investigating flicker, lost state, and layout shifts.
 ---
 
 # UI interaction design
@@ -23,6 +23,10 @@ Before changing the UI, identify:
 Prefer familiar patterns unless a different interaction makes the task clearly
 easier. Keep one visually dominant action per task context. A focused dialog is
 its own task context and may have its own primary action.
+
+Reuse the project's UI kit, semantic tokens, and established spacing, icon sizes,
+hover treatment, and feedback conventions. Add a new pattern only when the existing
+ones cannot express the task clearly. Avoid helper text that repeats a clear label.
 
 ## Actions, icons, and labels
 
@@ -62,6 +66,10 @@ can happen next?
 - Show immediate press, focus, loading, success, warning, and error feedback.
   Avoid arbitrary timers, delayed acknowledgement, and transitions that block
   input.
+- Distinguish persistent selection from hover and press states. Review combinations
+  such as selected-plus-hover and selected-plus-focus; keep semantic colours and
+  status indicators readable on each surface. Keep selectable rows generous without
+  nesting interactive controls inside other controls.
 - Match feedback to scope: field errors beside fields, local confirmation beside
   the affected task, persistent messages for information needed later, and
   toasts only for brief non-blocking status.
@@ -87,6 +95,29 @@ can happen next?
   actions, and state the consequence before commitment. Prefer undo when it is
   safe; use confirmation for irreversible or costly changes.
 
+## Navigation and state continuity
+
+- Separate shared UI lifetime from screen lifetime. Keep headers, navigation, and
+  ongoing status in a stable parent while the task's changing region is replaced.
+  Moving from a list to an item editor should not restart a shared session timer.
+- Use stable entity keys for lists. Avoid keying shared shells by pathname, changing
+  component types in the same slot, or moving persistent UI between conditional
+  branches. Reset a subtree only when the product requires it, such as switching
+  to a different session or account.
+- Own shared data and recovery state at the boundary that must survive navigation.
+  Reuse the existing cache and consistent query keys instead of independently
+  restoring the same session in each screen. Keep frequent updates, such as clock
+  ticks, local to their display where possible.
+- Preserve drafts, selection, and focus during local updates. Make scroll and focus
+  changes intentional: a new screen may need heading focus and a scroll reset;
+  refreshing data should not unexpectedly move the user. Handle rapid navigation
+  and late responses without showing an obsolete screen.
+- Diagnose flicker before optimizing. In React, a re-render does not inherently
+  replace DOM: distinguish remounts, loading branches, entrance animations, layout
+  movement, and expensive rendering. Reduce overly broad subscriptions and use
+  profiling to justify memoization rather than adding it everywhere. Apply the
+  equivalent lifecycle reasoning in other UI frameworks.
+
 ## Loading and resilience
 
 - Preserve layout with skeletons or reserved space during initial load. Avoid
@@ -94,9 +125,14 @@ can happen next?
   remain visible.
 - Distinguish initial loading from refreshing existing data. Keep useful stale
   content available during a refresh and show its status without blocking the
-  task unnecessarily.
-- Show determinate progress for work with a measurable duration. For an unknown
-  duration, explain what is happening and offer retry or recovery when it fails.
+  task unnecessarily. Retain it only while valid; clear it when identity or access
+  changes require it. Scope pending indicators and errors to the affected region.
+- Reserve media dimensions or aspect ratios and match skeletons to the final
+  layout. Keep action and status areas stable as labels change, using sizing that
+  still accommodates narrow widths and enlarged text without clipping.
+- Show determinate progress only when actual progress is known. Otherwise use an
+  appropriate spinner or skeleton, explain the pending work where useful, and
+  offer retry or recovery when it fails.
 
 ## Motion
 
@@ -104,7 +140,14 @@ Motion must communicate feedback, orientation, continuity, focus, or hierarchy.
 Remove it when it does none of these.
 
 - Make small feedback quicker than a menu, panel, or page transition. Use a
-  consistent timing scale rather than ad-hoc durations.
+  consistent timing scale through shared tokens rather than ad-hoc durations.
+  Prefer simple platform transitions, such as CSS on the web; add an animation
+  dependency only for a concrete unmet need. Clean up animation resources when
+  their owning component or screen is removed.
+- Avoid replaying page-wide entrance fades during routine navigation or stacking
+  shell and content fades. Do not add delays or animation to disguise a remount.
+  Resolve known destinations directly where practical instead of flashing an
+  intermediate redirect screen.
 - Prefer `transform` and `opacity` for frequent animation. Measure before
   relying on layout animation in a repeated interaction.
 - Preserve spatial context: a popup should originate near its trigger, and a
@@ -171,8 +214,17 @@ Layering expresses task priority.
 - Honour `prefers-reduced-motion`: replace travel, parallax, and elastic motion
   with short opacity, colour, or static state changes while retaining useful
   feedback. Make material surfaces more solid when transparency is reduced.
-- Test the complete task at desktop and mobile sizes with keyboard-only input,
-  realistic data, both themes, motion reduction, and failure/retry paths.
+- Test the complete task at supported device or window sizes with relevant input
+  methods, realistic data, supported themes, motion reduction, and failure/retry
+  paths. Include slow requests, repeated navigation, and back navigation when
+  transitions change; check shared UI, input, scroll, and focus continuity.
 - Review normal speed and interrupted states. Fix delayed response, visual
   jumps, lost context, accidental priority conflicts, and feedback that competes
   with the task.
+- Keep regression checks focused on the user-visible contract: retained input,
+  correct navigation, or shared UI remaining available. Assert mounted-element
+  identity only when its lifetime is itself the requirement. Avoid exact render
+  counts, animation frames, timing, or pixel-geometry assertions.
+- Pair flow checks with screenshots of meaningful visible states. Static captures
+  cannot prove the absence of transient flicker; exercise transitions with normal
+  motion as well as reduced motion when relevant.

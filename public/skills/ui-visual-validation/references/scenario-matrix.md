@@ -14,6 +14,7 @@ requirements. Record applicability in the matrix.
 | Overlay/navigation | Dialog/sheet/drawer open, cancel, confirm, menu, active tab, nested screen, back navigation, sticky/fixed controls while scrolling |
 | Authorization | Signed out, each materially different role, access denied, expired session when supported |
 | Recovery | Offline, local save, pending sync, failed sync, successful sync, reload or relaunch restoration when supported |
+| Navigation continuity | Slow transition, repeat/back navigation, rapid navigation with late responses, persistent shared UI, retained drafts/selection, intentional focus and scroll |
 | Result variants | Each supported result type, combinations, no result, all items receiving the same treatment, mixed treatments |
 | Adaptive layout | Usual and narrow supported viewport/window, relevant breakpoint, device/orientation changes, dense layout at representative sizes |
 | Platform integration | Safe areas and system insets, app/window chrome, on-screen keyboard, supported split-screen or window resizing, relevant permission prompts |

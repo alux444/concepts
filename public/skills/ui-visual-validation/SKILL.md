@@ -78,6 +78,12 @@ orientations, or input modes the product does not support.
   when they define the case. Do not assert every label, child element, style, spacing,
   or intermediate implementation step. Let screenshots and visual review cover
   appearance; avoid duplicating that coverage with granular assertions.
+- For navigation or loading changes, exercise slow requests, repeat/back navigation,
+  and relevant interruptions with normal motion. Check the core continuity contract:
+  shared UI remains available, input survives, and focus and scroll behave as intended.
+  Use mounted-element identity only when lifetime preservation is the requirement;
+  avoid exact render counts, animation frames, timing, and pixel-geometry assertions.
+  Static screenshots cannot prove the absence of transient flicker.
 
 ## Capture and compare
 
