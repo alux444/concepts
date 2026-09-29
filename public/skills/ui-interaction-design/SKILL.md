@@ -97,6 +97,10 @@ can happen next?
 
 ## Navigation and state continuity
 
+- Separate the requested destination from its asynchronous data. Keep navigation
+  state, URLs, and history synchronized where applicable. Clear selections tied to
+  the old destination, isolate responses by identity, and base rapid input on the
+  latest requested state. A data failure need not undo the user's navigation.
 - Separate shared UI lifetime from screen lifetime. Keep headers, navigation, and
   ongoing status in a stable parent while the task's changing region is replaced.
   Moving from a list to an item editor should not restart a shared session timer.
@@ -118,8 +122,17 @@ can happen next?
   profiling to justify memoization rather than adding it everywhere. Apply the
   equivalent lifecycle reasoning in other UI frameworks.
 
-## Loading and resilience
+## Responsiveness and loading
 
+- Acknowledge input immediately and keep navigation, selection, and editing usable
+  while requests run wherever those actions remain valid. Render information known
+  locally without waiting for server data; load only the missing parts asynchronously.
+- Reuse valid cached data and prefetch a bounded set of likely next destinations
+  where useful. Never present one entity's cached content as another's. Distinguish
+  unknown or pending results from confirmed empty results.
+- Use optimistic mutations only when the outcome is predictable and safely
+  recoverable. Preserve drafts, reconcile with the response, and provide rollback
+  or retry on failure.
 - Preserve layout with skeletons or reserved space during initial load. Avoid
   content jumps, repeated spinners, and blank screens when useful context can
   remain visible.
@@ -134,10 +147,27 @@ can happen next?
   appropriate spinner or skeleton, explain the pending work where useful, and
   offer retry or recovery when it fails.
 
+## Proportionate error feedback
+
+- Keep usable content and controls visible after recoverable failures. For missing
+  supplemental data or failed background refreshes, prefer compact local status
+  and retry over large alerts that displace the user's work.
+- Use brief toasts for explicit action outcomes when appropriate to the product's
+  conventions. Avoid repeated notifications from polling, automatic retries, or
+  rendering. Keep unresolved problems and recovery actions discoverable after a
+  toast disappears, and preserve the user's input.
+- Keep field validation beside its input. Reserve blocking error states for cases
+  with no useful content, unavailable resources, or access/authentication failures.
+  Remove protected stale content when access is revoked.
+- Match recovery to the cause: retry transient failures, offer sign-in for expired
+  authentication, and provide a way away from missing resources. Announce errors
+  accessibly and retain safe support identifiers without exposing raw backend errors.
+
 ## Motion
 
-Motion must communicate feedback, orientation, continuity, focus, or hierarchy.
-Remove it when it does none of these.
+Default to immediate, stable state changes. Add motion when requested or when it
+clarifies feedback, orientation, continuity, focus, or hierarchy. Never use animation,
+minimum loading times, or disabled navigation to disguise latency.
 
 - Make small feedback quicker than a menu, panel, or page transition. Use a
   consistent timing scale through shared tokens rather than ad-hoc durations.
