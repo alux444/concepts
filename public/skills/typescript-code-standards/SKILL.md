@@ -23,13 +23,29 @@ description: Write or review TypeScript with strict types, clear control flow, d
 ## Functions
 
 - Treat ~50 lines as a rough function limit. Readability matters more than line counting.
-- Extract helpers aggressively ("wishful thinking" style: write the high-level flow first calling
-  functions that don't exist yet, then implement them)
+- Extract helpers around meaningful responsibilities, not merely to shorten a function.
+  Keep straightforward steps together when extra indirection would make the flow harder to read.
 - Each function does ONE thing
 - Accept dependencies as parameters — functions should receive what they need, not construct or
   import it themselves
 - Use factory functions when dependency selection depends on runtime context (user config,
   environment, file type, etc.)
+
+## Hooks and returned actions
+
+- Give hooks that return state and actions a named interface instead of an inline object
+  return type. Keep each action's parameters and return type explicit.
+- Define nontrivial actions as named functions inside the hook, then return a compact
+  object such as `return { failure, select }`. Avoid burying control flow inside returned
+  object methods.
+- Keep each action readable from top to bottom: resolve current state, validate the action,
+  persist the change, then publish success. For durable local state, publish the committed
+  state only after the required save succeeds. Keep pending feedback separate from success.
+- Name meaningful intermediate values and decisions, such as `currentSession`,
+  `nextSession`, `selectionLocked`, and `selectionChanged`. Avoid compound expressions
+  passed directly as boolean arguments when a name would explain their purpose.
+- Destructure dependencies and repeatedly used identifiers near the top of the hook.
+  Use descriptive aliases where needed, such as `id: sessionId`.
 
 ## Control flow
 
