@@ -84,6 +84,14 @@ orientations, or input modes the product does not support.
   Use mounted-element identity only when lifetime preservation is the requirement;
   avoid exact render counts, animation frames, timing, and pixel-geometry assertions.
   Static screenshots cannot prove the absence of transient flicker.
+- For changed overlays, review opening, submission, validation, closing, and rapid
+  dismissal/reopening using supported dismissal paths. Check normal and reduced
+  motion, relevant compact/narrow layouts, focus restoration, and underlying scroll.
+  Inspect content throughout exit; use a recording or targeted layout measurements
+  when needed to distinguish intentional transforms from a collapsing container.
+  Keep measurements diagnostic rather than adding broad pixel-geometry tests.
+  Regression checks should target the failure, such as a quick reopen retaining
+  its new selection instead of being cleared by the previous exit's cleanup.
 
 ## Capture and compare
 

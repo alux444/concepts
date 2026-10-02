@@ -185,6 +185,12 @@ minimum loading times, or disabled navigation to disguise latency.
 - Do not block keyboard dismissal, focus changes, or direct input while a
   surface is animating. A transition should feel interruptible even when its
   implementation is simple.
+- Keep overlay content and layout stable until its exit completes. Separate
+  visibility from selected content; defer dismissal-related selection clearing,
+  form resets, and validation cleanup to the actual exit lifecycle callback,
+  not a guessed timeout. Guard cleanup against a quick reopen so an old exit
+  cannot clear the new selection. Handle reduced or absent motion without waiting
+  for an animation event that may never fire.
 - For direct manipulation such as drag, swipe, or a gesture-controlled sheet,
   track the pointer continuously, preserve the grab offset, capture the pointer,
   and settle from the release velocity. Do not fake a continuous gesture with an
@@ -251,6 +257,12 @@ Layering expresses task priority.
 - Review normal speed and interrupted states. Fix delayed response, visual
   jumps, lost context, accidental priority conflicts, and feedback that competes
   with the task.
+- Audit overlay stability through opening, submission, validation, closing, and
+  rapid dismissal/reopening. Exercise supported footer actions, close controls,
+  Escape, and backdrop dismissal at relevant densities and narrow widths. Check
+  normal and reduced motion, focus restoration, and underlying page scroll.
+  When diagnosing a collapse, inspect visible content and untransformed layout
+  dimensions during exit so intentional scale or opacity does not conceal it.
 - Keep regression checks focused on the user-visible contract: retained input,
   correct navigation, or shared UI remaining available. Assert mounted-element
   identity only when its lifetime is itself the requirement. Avoid exact render

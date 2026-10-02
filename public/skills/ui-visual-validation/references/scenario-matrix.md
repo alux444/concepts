@@ -12,6 +12,7 @@ requirements. Record applicability in the matrix.
 | Form flow | Blank, prefilled, validation errors, disabled actions, submitting, failure preserving values, saved result |
 | Selection | None, one, multiple when supported, selected plus focus, filter with results, filter with no results |
 | Overlay/navigation | Dialog/sheet/drawer open, cancel, confirm, menu, active tab, nested screen, back navigation, sticky/fixed controls while scrolling |
+| Overlay lifecycle | Opening, submit/validation, closing with content retained, rapid dismiss/reopen with a new selection, supported dismissal paths, restored focus and page scroll |
 | Authorization | Signed out, each materially different role, access denied, expired session when supported |
 | Recovery | Offline, local save, pending sync, failed sync, successful sync, reload or relaunch restoration when supported |
 | Navigation continuity | Slow transition, repeat/back navigation, rapid navigation with late responses, persistent shared UI, retained drafts/selection, intentional focus and scroll |
