@@ -54,6 +54,25 @@ Prefer clear, idiomatic Go and the smallest design that satisfies the current pr
 - Replace unexplained literals with named constants when the value has domain or operational meaning.
 - Name errors for the condition callers observe. `ErrNotFound` is sufficient in a focused package; use a more specific name when the package can report multiple not-found conditions.
 
+## Readability and whitespace
+
+Assume a human will read and review every change. Format code to reveal its
+structure, not to minimise line count.
+
+- Use one blank line between meaningful steps, such as resolving state, validating,
+  persisting, and publishing the result. Keep closely related statements together;
+  do not separate every line or use repeated blank lines.
+- Separate declarations and functions so their boundaries are easy to scan. Within
+  a function, group values by the step they support rather than by syntax alone.
+- Break long expressions, call arguments, object literals, and method chains across
+  lines when that makes their structure clearer. Keep short, simple expressions
+  compact; avoid dense one-liners containing multiple decisions or side effects.
+- Use consistent indentation and spaces around operators and after commas, following
+  the project's formatter and language conventions. Avoid manual column alignment
+  or whitespace that fights the formatter.
+- Read the diff from top to bottom: the steps and relationships should be apparent
+  without narration comments or unnecessary helper functions.
+
 ## Comments and formatting
 
 - Use names and structure to explain what code does. Comments should explain intent, constraints, or a non-obvious reason.

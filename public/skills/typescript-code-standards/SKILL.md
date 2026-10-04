@@ -73,6 +73,25 @@ description: Write or review TypeScript with strict types, clear control flow, d
 - NEVER make bundles of utils. Sort them into their own relevant modules / move into relevant
   class / make a new class if needed.
 
+## Readability and whitespace
+
+Assume a human will read and review every change. Format code to reveal its
+structure, not to minimise line count.
+
+- Use one blank line between meaningful steps, such as resolving state, validating,
+  persisting, and publishing the result. Keep closely related statements together;
+  do not separate every line or use repeated blank lines.
+- Separate declarations and functions so their boundaries are easy to scan. Within
+  a function, group values by the step they support rather than by syntax alone.
+- Break long expressions, call arguments, object literals, and method chains across
+  lines when that makes their structure clearer. Keep short, simple expressions
+  compact; avoid dense one-liners containing multiple decisions or side effects.
+- Use consistent indentation and spaces around operators and after commas, following
+  the project's formatter and language conventions. Avoid manual column alignment
+  or whitespace that fights the formatter.
+- Read the diff from top to bottom: the steps and relationships should be apparent
+  without narration comments or unnecessary helper functions.
+
 ## Comments
 
 - Don't write comments — improve the code instead
