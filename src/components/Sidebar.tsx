@@ -26,7 +26,7 @@ export function Sidebar({ open, onClose }: SidebarProps): React.ReactElement {
     return location.pathname === `/docs/${slug}`;
   };
 
-  const isClaudeActive = location.pathname === "/claude";
+  const isSkillsActive = location.pathname === "/ai-skills";
 
   return (
     <>
@@ -53,15 +53,15 @@ export function Sidebar({ open, onClose }: SidebarProps): React.ReactElement {
 
         <nav className="flex flex-col gap-1">
           <Link
-            to="/claude"
+            to="/ai-skills"
             onClick={onClose}
             className={`block px-3 py-2 mb-3 text-sm rounded-md no-underline transition-colors duration-150 ${
-              isClaudeActive
+              isSkillsActive
                 ? "bg-bg-secondary text-primary font-medium"
                 : "text-text-secondary hover:text-text-primary hover:bg-bg-secondary"
             }`}
           >
-            Claude Skills
+            AI Skills
           </Link>
 
           {navTree.map(({ category, items }) => (
