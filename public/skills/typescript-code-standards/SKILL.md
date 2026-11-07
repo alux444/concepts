@@ -31,6 +31,20 @@ description: Write or review TypeScript with strict types, clear control flow, d
 - Use factory functions when dependency selection depends on runtime context (user config,
   environment, file type, etc.)
 
+## State and React
+
+- Prefer reducers or state machines for state with related transitions, multiple phases,
+  or rules that must stay consistent. Use simple local state for straightforward cases.
+- Model states and events with explicit types; use tagged unions where they prevent invalid
+  combinations. Keep transitions pure and deterministic so they can be tested without React.
+- Keep components focused on rendering, accessibility, and wiring events. Put nontrivial
+  state transitions and business rules in framework-independent state code.
+- Keep side effects such as persistence, network calls, and timers outside reducers and
+  state machines. Represent pending, success, and failure explicitly where needed; publish
+  durable changes as committed only after the required save succeeds.
+- Test meaningful transitions and edge cases directly without rendering components;
+  test the React integration where the wiring or user-visible behavior needs coverage.
+
 ## Hooks and returned actions
 
 - Give hooks that return state and actions a named interface instead of an inline object
